@@ -1,5 +1,6 @@
 import React from 'react'
 import classNames from 'classnames'
+import GraphView from '../../components/fetch/GraphView'
 
 import {
   CAvatar,
@@ -207,6 +208,13 @@ const Dashboard = () => {
             </CCol>
           </CRow>
           <MainChart />
+          <CCard className="mb-4">
+  <CCardHeader>Graph Visualization</CCardHeader>
+  <CCardBody>
+    <GraphView />
+  </CCardBody>
+</CCard>
+
         </CCardBody>
         <CCardFooter>
           <CRow
