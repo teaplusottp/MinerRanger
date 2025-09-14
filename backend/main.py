@@ -69,6 +69,7 @@ def get_stats():
             "data": [78, 81, 80, 45, 34, 12, 40, 85, 65, 23, 12, 98, 34, 84, 67, 82],
         },
     }
+
 @app.get("/api/sidebar")
 def get_sidebar():
     return {
@@ -77,6 +78,7 @@ def get_sidebar():
             "Datasets": ["Dataset 1", "Dataset 2", "Dataset 3"]
         },
     }
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
