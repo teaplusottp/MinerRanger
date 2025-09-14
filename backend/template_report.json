@@ -1,0 +1,74 @@
+{
+  "report_title": "Road_Traffic_Fine_Management_Process_Report",
+  "description": "Detailed analysis event logs Road_Traffic_Fine_Management_Process",
+  "dataset_overview": {
+    "log_name": "Road_Traffic_Fine_Management_Process.xes.gz",
+    "date_range": {
+      "start_time": "2025-01-01T00:00:00",
+      "end_time": "2025-07-31T23:59:59"
+    },
+    "num_events": 87213,
+    "num_cases": 19231,
+    "num_activities": 23,
+    "num_variants": 113,
+    "activities_by_frequency": "Activities by frequency",
+    "average_activity_per_case": 4,
+    "top_k_activity_chart": {
+      "data": [],
+      "insight": "Các hoạt động có tần suất cao nhất là ... . Chiếm ... % trong tổng số các events xảy ra. Liệt kê từng hoạt động và tần suất của nó..."
+    },
+    "top_k_variant_chart": {
+      "data": [],
+      "insight": "Các biến thể phổ biến nhất là ... Chiếm ... % trong tổng số các biến thể."
+    },
+    "insights": [
+      "Event logs chứa ... events, ... cases, ..., trung bình mỗi case có ... events.",
+      "Các hoạt động phổ biến nhất là ..., chiếm khoảng ... % trong tổng số các events.",
+      "... cases thuộc ... variants. Nghĩa là với 1 qui trình ... thì có tới ...(number variants) cách thực hiện.",
+      "Các variant phổ biến nhất là ..., chiếm khoảng ... % trong tổng số các variant."
+    ]
+  },
+  "process_discovery": {
+    "bpmn_model_img": "bpmn.png",
+    "insights": ""
+  },
+  "performance_analysis": {
+    "mean_case_duration_hours": 14.2,
+    "max_case_duration_hours": 145.7,
+    "min_case_duration_hours": 0.4,
+    "case_arrival_ratio": 1,
+    "case_dispersion_ratio": 5,
+    "activity_performance": [
+      { "activity": "Create Request", "avg_duration_min": 2.1 },
+      { "activity": "Assign Agent", "avg_duration_min": 8.6 },
+      { "activity": "Technical Evaluation", "avg_duration_min": 45.3 },
+      { "activity": "Customer Contact", "avg_duration_min": 18.9 },
+      { "activity": "Implement Fix", "avg_duration_min": 64.7 },
+      { "activity": "Close Request", "avg_duration_min": 3.2 }
+    ],
+    "dotted_chart": {
+      "img_url": "",
+      "insight": ""
+    },
+    "case_duration_chart": {
+      "img_url": "",
+      "insight": ""
+    },
+    "insights": [
+      "Hoạt động 'Implement Fix' chiếm thời gian lớn nhất, trung bình 64.7 phút.",
+      "Độ lệch lớn giữa thời gian trung bình (14.2h) và thời gian dài nhất (145.7h) cho thấy sự phân phối bất thường.",
+      "Chênh lệch giữa thời gian thực hiện và thời gian chờ lớn nhất tại cặp 'Technical Evaluation' -> 'Customer Contact'."
+    ]
+  },
+  "conformance_checking": {
+    "comment": "Chưa làm xong hụ hụ, cập nhật sau"
+  },
+  "enhancement": {
+    "insights": [
+      "Cải thiện thời gian phản hồi ở bước 'Technical Evaluation' thông qua phân nhóm ưu tiên dựa trên 'case:severity'.",
+      "Tự động nhắc 'Close Request' nếu sau 2 ngày không thực hiện nhằm kết thúc case rõ ràng.",
+      "Xây dựng cảnh báo anomaly nội bộ dựa trên loop hoạt động hoặc độ dài thời gian case.",
+      "Tối ưu 'handover of work' giữa các agent bằng việc chuẩn hóa trách nhiệm và tự động chuyển tiếp."
+    ]
+  }
+}
