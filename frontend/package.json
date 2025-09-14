@@ -39,6 +39,7 @@
     "simplebar-react": "^3.3.2"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
