@@ -1,13 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CButton,
-  CCard,
-  CCardBody,
-  CCol,
-  CContainer,
   CForm,
   CFormInput,
   CRow,
+  CCol
 } from '@coreui/react'
 
 const Chatbot = () => {
@@ -15,6 +12,19 @@ const Chatbot = () => {
     { from: 'bot', text: 'Xin chào! Tôi có thể giúp gì cho bạn?' },
   ])
   const [input, setInput] = useState('')
+  const [history, setHistory] = useState([])
+  const [groups, setGroups] = useState({})
+
+  // Lấy dữ liệu sidebar từ backend
+  useEffect(() => {
+    fetch('http://localhost:5000/api/sidebar')
+      .then((res) => res.json())
+      .then((data) => {
+        setHistory(data.history || [])
+        setGroups(data.groups || {})
+      })
+      .catch((err) => console.error('Error fetch sidebar:', err))
+  }, [])
 
   const sendMessage = () => {
     if (!input.trim()) return
@@ -32,76 +42,139 @@ const Chatbot = () => {
   }
 
   return (
-    <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
-      <CContainer>
-        <CRow className="justify-content-center">
-          <CCol md={8}>
-            <CCard className="p-4">
-              <CCardBody>
-                <h2>Chatbot</h2>
-                <div
-                  style={{
-                    height: '400px',
-                    overflowY: 'auto',
-                    border: '1px solid #eee',
-                    padding: '10px',
-                    marginBottom: '15px',
-                  }}
-                >
-                  {messages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        textAlign: msg.from === 'user' ? 'right' : 'left',
-                        margin: '5px 0',
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '8px 12px',
-                          borderRadius: '10px',
-                          background:
-                            msg.from === 'user' ? '#0d6efd' : '#e9ecef',
-                          color: msg.from === 'user' ? '#fff' : '#000',
-                        }}
-                      >
-                        {msg.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+    <div
+      style={{
+        display: 'flex',
+        height: '100vh',
+        backgroundColor: '#121212',
+        color: '#fff',
+      }}
+    >
+      {/* Sidebar */}
+      <div
+        style={{
+          width: '250px',
+          borderRight: '1px solid #333',
+          padding: '15px',
+          backgroundColor: '#1e1e1e',
+          overflowY: 'auto'
+        }}
+      >
+        <h5 style={{ color: '#aaa' }}>Lịch sử chat</h5>
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {history.map((item, idx) => (
+            <li
+              key={idx}
+              style={{
+                padding: '10px',
+                margin: '5px 0',
+                borderRadius: '8px',
+                backgroundColor: '#2a2a2a',
+                cursor: 'pointer',
+              }}
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+        <CButton
+          color="secondary"
+          className="w-100 mt-3"
+          onClick={() =>
+            setHistory([...history, `Cuộc trò chuyện ${history.length + 1}`])
+          }
+        >
+          + Cuộc trò chuyện mới
+        </CButton>
 
-                <CForm
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    sendMessage()
+        {/* Render groups + datasets */}
+        {Object.entries(groups).map(([groupName, datasets]) => (
+          <div key={groupName} style={{ marginTop: '20px' }}>
+            <h6 style={{ color: '#aaa' }}>{groupName}</h6>
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {datasets.map((ds, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    padding: '8px',
+                    margin: '4px 0',
+                    borderRadius: '6px',
+                    backgroundColor: '#2a2a2a',
+                    cursor: 'pointer',
                   }}
                 >
-                  <CRow>
-                    <CCol xs={9}>
-                      <CFormInput
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Nhập tin nhắn..."
-                      />
-                    </CCol>
-                    <CCol xs={3}>
-                      <CButton
-                        color="primary"
-                        className="w-100"
-                        type="submit"
-                      >
-                        Gửi
-                      </CButton>
-                    </CCol>
-                  </CRow>
-                </CForm>
-              </CCardBody>
-            </CCard>
-          </CCol>
-        </CRow>
-      </CContainer>
+                  {ds}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Chat chính */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '20px',
+          }}
+        >
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              style={{
+                textAlign: msg.from === 'user' ? 'right' : 'left',
+                margin: '8px 0',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '10px 15px',
+                  borderRadius: '12px',
+                  background:
+                    msg.from === 'user' ? '#0d6efd' : '#2a2a2a',
+                  color: msg.from === 'user' ? '#fff' : '#ddd',
+                  maxWidth: '70%',
+                }}
+              >
+                {msg.text}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Ô nhập tin nhắn */}
+        <div style={{ borderTop: '1px solid #333', padding: '15px' }}>
+          <CForm
+            onSubmit={(e) => {
+              e.preventDefault()
+              sendMessage()
+            }}
+          >
+            <CRow>
+              <CCol xs={10}>
+                <CFormInput
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Nhập tin nhắn..."
+                  style={{
+                    backgroundColor: '#1e1e1e',
+                    color: '#fff',
+                    border: '1px solid #444',
+                  }}
+                />
+              </CCol>
+              <CCol xs={2}>
+                <CButton color="primary" className="w-100" type="submit">
+                  Gửi
+                </CButton>
+              </CCol>
+            </CRow>
+          </CForm>
+        </div>
+      </div>
     </div>
   )
 }
