@@ -1,0 +1,38 @@
+{
+  "groups": {
+    "Datasets": ["D1", "D2"]
+  },
+  "history": ["Cuộc trò chuyện 1", "Cuộc trò chuyện 2"],
+  "Dataset": {
+    "D1": [
+      { "from": "bot", "text": "Tôi là trợ lý về dataset. Bạn cần hỏi gì?" },
+      { "from": "user", "text": "Tại sao cột 'Age' lại có nhiều giá trị null vậy?" },
+      { "from": "bot", "text": "Cột 'Age' bị thiếu dữ liệu vì trong quá trình thu thập không đầy đủ." },
+      { "from": "user", "text": "Có cách nào xử lý cột này không?" },
+      { "from": "bot", "text": "Bạn có thể dùng mean/median imputation hoặc loại bỏ hàng có giá trị null." }
+    ],
+    "D2": [
+      { "from": "bot", "text": "Xin chào, tôi là trợ lý Dataset D2." },
+      { "from": "user", "text": "Dataset này có bao nhiêu bản ghi?" },
+      { "from": "bot", "text": "Dataset D2 có tổng cộng 15,230 bản ghi và 12 cột." },
+      { "from": "user", "text": "Cột nào quan trọng nhất trong dự đoán?" },
+      { "from": "bot", "text": "Cột 'TransactionAmount' và 'UserLocation' thường có ảnh hưởng lớn." }
+    ]
+  },
+  "Chat": {
+    "Cuộc trò chuyện 1": [
+      { "from": "bot", "text": "Xin chào! Tôi có thể giúp gì cho bạn?" },
+      { "from": "user", "text": "Bạn có thể kể chuyện cười không?" },
+      { "from": "bot", "text": "Tất nhiên! Tại sao máy tính lại lạnh? Vì nó mở quá nhiều Windows 😆" },
+      { "from": "user", "text": "Haha, hay đấy! Kể thêm nữa đi." },
+      { "from": "bot", "text": "Ok, tại sao lập trình viên thích ngồi trong bóng tối? Vì họ sợ bug 🐛" }
+    ],
+    "Cuộc trò chuyện 2": [
+      { "from": "bot", "text": "Xin chào, đây là cuộc trò chuyện số 2." },
+      { "from": "user", "text": "Bạn có thể dịch câu này sang tiếng Anh không: 'Hôm nay trời đẹp'?" },
+      { "from": "bot", "text": "'Hôm nay trời đẹp' → 'The weather is nice today.'" },
+      { "from": "user", "text": "Cảm ơn!" },
+      { "from": "bot", "text": "Không có gì, rất vui được giúp bạn." }
+    ]
+  }
+}

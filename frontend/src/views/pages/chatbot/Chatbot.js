@@ -8,37 +8,48 @@ import {
 } from '@coreui/react'
 
 const Chatbot = () => {
-  const [messages, setMessages] = useState([
-    { from: 'bot', text: 'Xin chào! Tôi có thể giúp gì cho bạn?' },
-  ])
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [history, setHistory] = useState([])
-  const [groups, setGroups] = useState({})
+  const [datasets, setDatasets] = useState([])
+  const [currentChat, setCurrentChat] = useState({ category: 'Chat', name: 'Cuộc trò chuyện 1' })
 
-  // Lấy dữ liệu sidebar từ backend
+  // Lấy sidebar (datasets + history)
   useEffect(() => {
-    fetch('http://localhost:5000/api/sidebar')
+    fetch('http://localhost:8000/api/sidebar')
       .then((res) => res.json())
       .then((data) => {
         setHistory(data.history || [])
-        setGroups(data.groups || {})
+        if (data.groups && data.groups.Datasets) {
+          setDatasets(data.groups.Datasets)
+        }
       })
       .catch((err) => console.error('Error fetch sidebar:', err))
   }, [])
 
+  // Lấy messages khi đổi cuộc trò chuyện hoặc dataset
+  useEffect(() => {
+    if (!currentChat.category || !currentChat.name) return
+    fetch(`http://localhost:8000/api/messages/${currentChat.category}/${encodeURIComponent(currentChat.name)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setMessages(data.messages || [])
+      })
+      .catch((err) => console.error('Error fetch messages:', err))
+  }, [currentChat])
+
   const sendMessage = () => {
     if (!input.trim()) return
-    const newMessages = [...messages, { from: 'user', text: input }]
-    setMessages(newMessages)
-    setInput('')
 
-    // giả lập bot trả lời
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { from: 'bot', text: 'Tôi đang xử lý: ' + input },
-      ])
-    }, 800)
+    fetch(`http://localhost:8000/api/chat/send?category=${currentChat.category}&name=${encodeURIComponent(currentChat.name)}&text=${encodeURIComponent(input)}`, {
+      method: "POST"
+    })
+      .then(res => res.json())
+      .then(data => {
+        setMessages(data.messages) // cập nhật toàn bộ history từ backend
+        setInput('')
+      })
+      .catch(err => console.error('Error send message:', err))
   }
 
   return (
@@ -57,19 +68,43 @@ const Chatbot = () => {
           borderRight: '1px solid #333',
           padding: '15px',
           backgroundColor: '#1e1e1e',
-          overflowY: 'auto'
+          overflowY: 'auto',
         }}
       >
+        {/* Datasets */}
+        <div style={{ marginBottom: '20px' }}>
+          <h6 style={{ color: '#aaa' }}>Datasets</h6>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {datasets.map((ds, idx) => (
+              <li
+                key={idx}
+                onClick={() => setCurrentChat({ category: 'Dataset', name: ds })}
+                style={{
+                  padding: '8px',
+                  margin: '4px 0',
+                  borderRadius: '6px',
+                  backgroundColor: currentChat.name === ds && currentChat.category === 'Dataset' ? '#0d6efd' : '#2a2a2a',
+                  cursor: 'pointer',
+                }}
+              >
+                {ds}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* History */}
         <h5 style={{ color: '#aaa' }}>Lịch sử chat</h5>
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {history.map((item, idx) => (
             <li
               key={idx}
+              onClick={() => setCurrentChat({ category: 'Chat', name: item })}
               style={{
                 padding: '10px',
                 margin: '5px 0',
                 borderRadius: '8px',
-                backgroundColor: '#2a2a2a',
+                backgroundColor: currentChat.name === item && currentChat.category === 'Chat' ? '#0d6efd' : '#2a2a2a',
                 cursor: 'pointer',
               }}
             >
@@ -80,35 +115,14 @@ const Chatbot = () => {
         <CButton
           color="secondary"
           className="w-100 mt-3"
-          onClick={() =>
-            setHistory([...history, `Cuộc trò chuyện ${history.length + 1}`])
-          }
+          onClick={() => {
+            const newChat = `Cuộc trò chuyện ${history.length + 1}`
+            setHistory([...history, newChat])
+            setCurrentChat({ category: 'Chat', name: newChat })
+          }}
         >
           + Cuộc trò chuyện mới
         </CButton>
-
-        {/* Render groups + datasets */}
-        {Object.entries(groups).map(([groupName, datasets]) => (
-          <div key={groupName} style={{ marginTop: '20px' }}>
-            <h6 style={{ color: '#aaa' }}>{groupName}</h6>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
-              {datasets.map((ds, idx) => (
-                <li
-                  key={idx}
-                  style={{
-                    padding: '8px',
-                    margin: '4px 0',
-                    borderRadius: '6px',
-                    backgroundColor: '#2a2a2a',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {ds}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
       </div>
 
       {/* Chat chính */}
