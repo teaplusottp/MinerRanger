@@ -10,19 +10,21 @@ import {
   CDropdownMenu,
   CDropdownItem,
 } from '@coreui/react'
+import { useDb } from '../context/DbContext'
 
 const AppHeader = ({ onOpenChat }) => {
   const [dbList, setDbList] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const { setSelectedDb } = useDb()   // lấy setter từ context
 
   const fetchDatabases = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/databases")
+      const res = await fetch('http://127.0.0.1:8000/databases')
       const data = await res.json()
       setDbList(data.databases || [])
       setLoaded(true)
     } catch (err) {
-      console.error("Lỗi fetch databases:", err)
+      console.error('Lỗi fetch databases:', err)
       setDbList([])
     }
   }
@@ -47,7 +49,14 @@ const AppHeader = ({ onOpenChat }) => {
             <CDropdownMenu>
               {loaded && dbList.length > 0 ? (
                 dbList.map((db, idx) => (
-                  <CDropdownItem key={idx} href="#">
+                  <CDropdownItem
+                    key={idx}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setSelectedDb(db)   // cập nhật db đã chọn vào context
+                    }}
+                  >
                     {db}
                   </CDropdownItem>
                 ))
@@ -57,8 +66,8 @@ const AppHeader = ({ onOpenChat }) => {
             </CDropdownMenu>
           </CDropdown>
 
-          {/* Chatbot cũng để dropdown */}
-                  <CNavItem>
+          {/* Chatbot */}
+          <CNavItem>
             <CNavLink
               href="#"
               onClick={(e) => {
@@ -69,7 +78,6 @@ const AppHeader = ({ onOpenChat }) => {
               Chatbot
             </CNavLink>
           </CNavItem>
-
         </CHeaderNav>
       </CContainer>
     </CHeader>
