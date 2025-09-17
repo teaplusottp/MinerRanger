@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Response
+from fastapi import FastAPI, UploadFile, File, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
@@ -7,9 +7,9 @@ import graphviz
 import uvicorn
 import os
 import json
+from pydantic import BaseModel
 
 app = FastAPI()
-import os
 
 
 # dữ liệu giả theo từng DB
