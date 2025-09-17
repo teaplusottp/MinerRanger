@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { CCard, CCardBody, CCol, CRow } from '@coreui/react'
 import { CChartLine } from '@coreui/react-chartjs'
 import { getStyle } from '@coreui/utils'
+import { useDb } from "../../context/DbContext"
 
 const WidgetsDropdown = () => {
   const [stats, setStats] = useState(null)
@@ -9,13 +10,17 @@ const WidgetsDropdown = () => {
   const widgetChartRef2 = useRef(null)
   const widgetChartRef3 = useRef(null)
   const widgetChartRef4 = useRef(null)
+const { selectedDb } = useDb()
 
   useEffect(() => {
-    fetch('http://localhost:8000/stats')
+    if (!selectedDb) return
+
+    fetch(`http://localhost:8000/stats?db=${selectedDb}`)
       .then((res) => res.json())
       .then((data) => setStats(data))
-      .catch((err) => console.error(err))
-  }, [])
+      .catch((err) => console.error("Lỗi fetch stats:", err))
+  }, [selectedDb]) // 👈 mỗi lần đổi DB thì gọi lại API
+
 
   if (!stats) {
     return <div>Loading...</div>

@@ -41,6 +41,9 @@ export default defineConfig(() => {
     },
     server: {
       port: 3000,
+      allowedHosts: [
+        '3000--main--ai-lab--ailab.coder.tuilakhanh.id.vn'
+      ],
       proxy: {
         // https://vitejs.dev/config/server-options.html
       },

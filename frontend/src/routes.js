@@ -23,7 +23,7 @@ const Tables = React.lazy(() => import('./views/base/tables/Tables'))
 const Tooltips = React.lazy(() => import('./views/base/tooltips/Tooltips'))
 
 //const Origin = React.lazy(() => import('./views/pages/origin/origin'))
-const Chatbot = React.lazy(() => import('./views/pages/chatbot/chatbot'))
+const Chatbot = React.lazy(() => import('./views/pages/chatbot/Chatbot'))
 
 // Buttons
 const Buttons = React.lazy(() => import('./views/buttons/buttons/Buttons'))
