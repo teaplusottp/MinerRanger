@@ -7,7 +7,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Ignore dotenv environment files
-.env
+# .env
 
 # Ignore OS files
 .DS_Store
