@@ -1,5 +1,27 @@
 {
   "dependencies": {
     "react-rnd": "^10.5.2"
-  }
+  },
+  "name": "minerranger",
+  "version": "1.0.0",
+  "description": "This project demonstrates **Process Mining** techniques using Python, FastAPI, and pm4py.  \r It includes a backend that generates process graphs and serves them to a frontend dashboard.",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "start": "concurrently \"npm run dev-backend-node\" \"npm run dev-backend-python\" \"npm run dev-frontend\"",
+    "dev-backend-node": "cd ./backend && npm run dev",          
+    "dev-backend-python": "cd ./backend && python3 main.py",  
+    "dev-frontend": "cd ./frontend && npm start"              
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teaplusottp/MinerRanger.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/teaplusottp/MinerRanger/issues"
+  },
+  "homepage": "https://github.com/teaplusottp/MinerRanger#readme"
 }
