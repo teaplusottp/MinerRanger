@@ -1,0 +1,21 @@
+Dataset: Road_Traffic_Fine_Management_Process.xes.gz
+
+Mô tả:
+Đây là event log thực tế từ hệ thống quản lý xử phạt vi phạm giao thông đường bộ tại châu Âu, do Đại học Kỹ thuật Eindhoven (TU/e) công bố.
+
+Log ghi nhận các sự kiện trong toàn bộ quy trình xử lý vi phạm giao thông: từ khi phát hiện vi phạm, gửi thông báo, thanh toán tiền phạt, đến khi vụ việc được đóng lại.
+
+Mục tiêu sử dụng:
+- Phục vụ nghiên cứu và giảng dạy về Process Mining
+- Benchmark cho các thuật toán: discovery, conformance checking, performance analysis, optimization
+
+Khoảng thời gian dữ liệu:
+Từ **01/01/2000 đến 18/06/2013**
+
+Định dạng:
+- Dạng nén `.xes.gz`, chuẩn XES
+- Phù hợp với các thư viện và công cụ Process Mining như PM4Py, ProM, Celonis
+
+Ghi chú:
+- Mỗi case đại diện cho một vụ vi phạm
+- Các hoạt động diễn ra theo tiến trình xử phạt tiêu chuẩn
