@@ -6,12 +6,13 @@
     "date_range": {
       "start_time": "2025-01-01T00:00:00",
       "end_time": "2025-07-31T23:59:59"
-    },
+    }
+  },
+  "basic_statistics": {
     "num_events": 87213,
     "num_cases": 19231,
     "num_activities": 23,
     "num_variants": 113,
-    "activities_by_frequency": "Activities by frequency",
     "average_activity_per_case": 4,
     "top_k_activity_chart": {
       "data": [],
@@ -29,29 +30,29 @@
     ]
   },
   "process_discovery": {
-    "bpmn_model_img": "bpmn.png",
+    "k_variants": "",
+    "bpmn_model": "bpmn.png",
+    "dfg_freq": "",
+    "dfg_perf": "",
+    "bpmn_model_new": "",
     "insights": ""
   },
   "performance_analysis": {
-    "mean_case_duration_hours": 14.2,
-    "max_case_duration_hours": 145.7,
-    "min_case_duration_hours": 0.4,
+    "mean_case_duration_days": 14.2,
+    "max_case_duration_days": 145.7,
+    "min_case_duration_days": 0.4,
     "case_arrival_ratio": 1,
     "case_dispersion_ratio": 5,
-    "activity_performance": [
-      { "activity": "Create Request", "avg_duration_min": 2.1 },
-      { "activity": "Assign Agent", "avg_duration_min": 8.6 },
-      { "activity": "Technical Evaluation", "avg_duration_min": 45.3 },
-      { "activity": "Customer Contact", "avg_duration_min": 18.9 },
-      { "activity": "Implement Fix", "avg_duration_min": 64.7 },
-      { "activity": "Close Request", "avg_duration_min": 3.2 }
-    ],
     "dotted_chart": {
       "img_url": "",
       "insight": ""
     },
-    "case_duration_chart": {
+    "throughput_time_density_chart": {
       "img_url": "",
+      "insight": ""
+    },
+    "temporal_profile": {
+      "data": "",
       "insight": ""
     },
     "insights": [
@@ -61,7 +62,17 @@
     ]
   },
   "conformance_checking": {
-    "comment": "Chưa làm xong hụ hụ, cập nhật sau"
+    "num_unfit_cases": "",
+    "unfit_cases_percentage": "",
+    "unfit_edges_with_count": {
+      "data": "",
+      "insight": ""
+    },
+    "unwanted_activity_stats": {
+      "data": "",
+      "insight": ""
+    },
+    "insights": ""
   },
   "enhancement": {
     "insights": [
