@@ -72,26 +72,53 @@ TungTungTungSahur/
 git clone https://github.com/teaplusottp/MinerRanger
 ```
 
-### 2. Setup backend
+### 2. Install dependencies
 ```bash
+# Root-level tools (e.g., concurrently)
+npm install
+
+# Node.js API dependencies
 cd backend
+npm install
+
+# Python API dependencies
 pip install -r requirements.txt
-py main.py
+
+# Frontend dependencies
+cd ../frontend
+npm install
 ```
 
+### 3. Configure environment variables
+Copy the sample file and update the values to match your environment:
 
-API will be available at:  
-👉 [http://localhost:8000/](http://localhost:8000/)
-
-### 3. Setup frontend (optional)
 ```bash
-cd frontend
-npm install
-npm start
-``'
+cp backend/.env.example backend/.env
+```
 
-Frontend will be available at:  
-👉 [http://localhost:5173](http://localhost:5173)
+Required variables:
+- `MONGO_URI` – connection string for your MongoDB instance.
+- `JWT_SECRET` – secret key used to sign authentication tokens.
+- `PORT` – (optional) port for the Express server, defaults to `8080` if not set.
+
+See [`backend/.env.example`](backend/.env.example) for placeholder values.
+
+### 4. Run the stack
+From the repository root run:
+
+```bash
+npm start
+```
+
+This command uses the root-level `package.json` to concurrently launch:
+- Express (Node.js) API
+- FastAPI/pm4py service
+- React frontend
+
+Services will be available at:
+- FastAPI: [http://localhost:8000/](http://localhost:8000/)
+- Express API: [http://localhost:8080/](http://localhost:8080/)
+- Frontend: [http://localhost:5173](http://localhost:5173)
 
 ---
 
