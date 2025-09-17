@@ -164,18 +164,6 @@ function GraphView() {
                         );
                       })}
                     </div>
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        backgroundColor: "rgba(255,255,255,0.05)",
-                        padding: "10px",
-                        borderRadius: "6px",
-                        fontStyle: "italic",
-                        color: "rgba(255,255,255,0.85)",
-                      }}
-                    >
-                      {splitInsight(chart.insight)}
-                    </div>
                   </div>
                 );
               })}
