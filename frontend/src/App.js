@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux'
 
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
+import { DbProvider } from "./context/DbContext"
 
 // We use those styles to show code examples, you should remove them in your application.
 import './scss/examples.scss'
@@ -30,6 +31,7 @@ const App = () => {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
+     <DbProvider>
     <HashRouter>
       <Suspense
         fallback={
@@ -45,6 +47,7 @@ const App = () => {
 
       </Suspense>
     </HashRouter>
+    </DbProvider>
   )
 }
 
