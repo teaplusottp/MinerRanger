@@ -1,11 +1,17 @@
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
+import subprocess
 import graphviz
 import uvicorn
 import os
+import json
 
 app = FastAPI()
+import os
+print(">>> BACKEND MAIN LOADED:", __file__)
+
 
 UPLOAD_FOLDER = "./uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -21,18 +27,11 @@ app.add_middleware(
 
 
 @app.get("/graph")
-async def generate_graph():
-    # Tạo đồ thị demo
-    dot = graphviz.Digraph(comment="Demo Graph")
-    dot.node("A", "Start")
-    dot.node("B", "Process")
-    dot.node("C", "End")
-    dot.edge("A", "B")
-    dot.edge("B", "C")
-
-    # Xuất ra PNG binary
-    img_bytes = dot.pipe(format="png")
-    return Response(content=img_bytes, media_type="image/png")
+async def get_graph():
+    report_path = os.path.join(os.path.dirname(__file__), "report.json")
+    with open(report_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return JSONResponse(content=data)
 
 @app.post("/upload")   # ✅ FastAPI style
 async def upload_file(file: UploadFile = File(...)):
