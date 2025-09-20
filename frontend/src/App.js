@@ -1,16 +1,20 @@
 import React, { Suspense, useEffect } from 'react'
-import { HashRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
-import { DbProvider } from "./context/DbContext"
+import { DbProvider } from './context/DbContext'
 
 // We use those styles to show code examples, you should remove them in your application.
 import './scss/examples.scss'
 
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
+const Home = React.lazy(() => import('./views/home/Home'))
+const Login = React.lazy(() => import('./views/auth/Login'))
+const Register = React.lazy(() => import('./views/auth/Register'))
+const PlaceholderPage = React.lazy(() => import('./views/marketing/PlaceholderPage'))
 
 const App = () => {
   const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
@@ -31,22 +35,27 @@ const App = () => {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-     <DbProvider>
-    <HashRouter>
-      <Suspense
-        fallback={
-          <div className="pt-3 text-center">
-            <CSpinner color="primary" variant="grow" />
-          </div>
-        }
-      >
-   <Routes>
-  <Route path="*" name="Home" element={<DefaultLayout />} />
-
-</Routes>
-
-      </Suspense>
-    </HashRouter>
+    <DbProvider>
+      <BrowserRouter>
+        <Suspense
+          fallback={
+            <div className="pt-3 text-center">
+              <CSpinner color="primary" variant="grow" />
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<PlaceholderPage title="About us" />} />
+            <Route path="/blog" element={<PlaceholderPage title="Blog" />} />
+            <Route path="/demo" element={<PlaceholderPage title="How it works" />} />
+            <Route path="/*" name="App" element={<DefaultLayout />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
     </DbProvider>
   )
 }

@@ -1,0 +1,16 @@
+{
+    "register": {
+        "username": "z",
+        "email": "z@gmail.com",
+        "password": "123456"
+    },
+    "login": {
+        "email": "z@gmail.com",
+        "password": "123456"
+    }
+
+}
+
+curl -H "X-Figma-Token:figd_KEdK-70es6QGGdcHRoZmNHBFnIX43BcqYE4gOW9y" \
+  "https://api.figma.com/v1/files/H21HrSQfHNKNXDtuHiQP9V" \
+  -o signup.json
