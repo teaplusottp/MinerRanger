@@ -2,13 +2,15 @@ from fastapi import FastAPI, UploadFile, File, Response, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 import subprocess
 import graphviz
 import uvicorn
 import os
 import json
 from pydantic import BaseModel
+
+from process.generate_cleaned import clean_and_save_logs # import hàm vừa viết
+from process.__init__ import *
 
 app = FastAPI()
 
@@ -51,36 +53,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # backend/
-STATIC_DIR = os.path.join(BASE_DIR, "demo")
-
-# Kiểm tra trước xem folder tồn tại
-if not os.path.exists(STATIC_DIR):
-    raise RuntimeError(f"Folder static không tồn tại: {STATIC_DIR}")
-
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
 @app.get("/graph")
 async def get_graph():
     report_path = os.path.join(os.path.dirname(__file__), "demo", "report.json")
     with open(report_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-
-    # map trực tiếp img_url sang static path
-    if "performance_analysis" in data:
-        for val in data["performance_analysis"].values():
-            if isinstance(val, dict) and "img_url" in val:
-                val["img_url"] = f"/static/{os.path.basename(val['img_url'])}"
-
     return JSONResponse(content=data)
-
-
-@app.get("/static/{filename}")
-def get_static_file(filename: str):
-    file_path = os.path.join(STATIC_DIR, filename)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    return JSONResponse(status_code=404, content={"error": "File not found"})
 
 
 @app.post("/upload")
@@ -88,15 +66,15 @@ async def upload_file(
     file: UploadFile = File(...),
     note: str = Form(None)   # text nhập từ frontend
 ):
-    if not file.filename.endswith(".xes"):
-        return JSONResponse(status_code=400, content={"error": "Chỉ chấp nhận file .xes"})
+    if not file.filename.endswith(".xes") and not file.filename.endswith(".xes.gz"):
+        return JSONResponse(status_code=400, content={"error": "Chỉ chấp nhận file .xes hoặc .xes.gz"})
 
-    # Lấy tên file (bỏ đuôi .xes) để làm tên folder
+    # Tạo folder con theo tên file (bỏ đuôi .xes)
     folder_name = os.path.splitext(file.filename)[0]
     save_dir = os.path.join(UPLOAD_FOLDER, folder_name)
     os.makedirs(save_dir, exist_ok=True)
 
-    # Lưu file .xes vào trong folder
+    # Lưu file .xes
     save_path = os.path.join(save_dir, file.filename)
     with open(save_path, "wb") as f:
         f.write(await file.read())
@@ -106,15 +84,20 @@ async def upload_file(
         readme_path = os.path.join(save_dir, "README.txt")
         with open(readme_path, "w", encoding="utf-8") as f:
             f.write(note)
-        #print(note)
+
+    # ✅ Gọi convert_xes sau khi upload xong
+    try:
+        generated_file =clean_and_save_logs(GEMINI_API_KEY=GEMINI_API_KEY)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen file: {str(e)}"})
 
     return {
-        "message": "✅ Upload thành công",
+        "message": "✅ Upload + Gen thành công",
         "filename": file.filename,
         "folder": folder_name,
-        "note": note or ""
+        "note": note or "",
+        "generated_file": generated_file  # đường dẫn file cleaned
     }
-
 @app.get("/api/sidebar")
 def get_sidebar():
     return {

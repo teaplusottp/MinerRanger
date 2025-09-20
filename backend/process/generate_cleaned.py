@@ -1,29 +1,12 @@
-# %%
-# Import libraries
 import pm4py
 import pandas as pd
 import numpy as np
-import re
 import json
+import re
+import os
 import google.generativeai as genai
 from openai import OpenAI
 
-
-from pm4py.visualization.petri_net import visualizer as petri_net_visualizer
-from pm4py.visualization.heuristics_net import visualizer as hn_visualizer
-from pm4py.algo.discovery.dfg import algorithm as dfg_discovery
-from pm4py.statistics.start_activities.log import get as start_activities_get
-from pm4py.statistics.end_activities.log import get as end_activities_get
-from pm4py.visualization.dfg import visualizer as dfg_visualization
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# %% [markdown]
-# # Preprocessing data.
-# - Thiếu hàm đọc input file là csv.
-
-# %%
 # ================== Helper functions ==================
 # Hàm trích str -> json
 def extract_json_between_braces(text):
@@ -102,6 +85,15 @@ def impute_groupwise(df, group_col, num_cols, cat_cols):
 # ================== Main preprocessing pipeline ==================
 def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path='../data/'):
     # Đọc file description
+    input_path = os.path.join(path, input_file_name)
+    description_path = os.path.join(path, description_file_name)
+
+    # Check file có tồn tại không
+    if not os.path.exists(input_path):
+        return {"error": f"Input file không tồn tại: {input_path}"}
+    if not os.path.exists(description_path):
+        return {"error": f"Description file không tồn tại: {description_path}"}
+
     with open(path + description_file_name, 'r', encoding='utf-8') as f:
         description_text = f.read()
 
@@ -203,15 +195,17 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
     print('Bước 3: Loại bỏ cột toàn Nan hay chỉ có 1 giá trị')
 
     # Bước 4: Loại bỏ các case không có hoạt động nào nằm trong start_time -> end_time
+    print('Bước 4: Loại bỏ các case không có hoạt động nào nằm trong start_time -> end_time')
     if start_end_times['start_time'] != 'NULL' and start_end_times['end_time'] != 'NULL':
         df_logs = pm4py.filter_time_range(df_logs, start_end_times['start_time'], start_end_times['end_time'], mode='traces_intersecting')
     else:
         print('Không tìm thấy start_end hoặc time_end. Bỏ qua bước lọc thời gian.')
-    print('Bước 4: Loại bỏ các case không có hoạt động nào nằm trong start_time -> end_time')
 
     # Bước 5: Xóa dòng thiếu thông tin ở các cột chính.
     # Bước 5.1: Xóa các dòng bị Null ở cột case:concept:name.
-    df_logs = df_logs[~df_logs['case:concept:name'].isnull()].copy()
+    df_logs = df_logs.loc[:, ~df_logs.columns.duplicated()].copy()
+    df_logs = df_logs[~df_logs['case:concept:name'].isnull()].copy() 
+
 
     # Bước 5.2: Xóa các dòng bị Null ở cột chính còn lại.
     if check_response == 'Enough 3 main columns.':
@@ -241,28 +235,47 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
 
     return df_logs
 
-# %%
-input_file_name = 'Road_Traffic_Fine_Management_Process.xes.gz'
-description_file_name = 'Road_Traffic_Fine_Management_Process_Description.txt'
-output_file_name = 'Road_Traffic_Fine_Management_Process_Cleaned.xes.gz'
-directory = '../data/Road_Traffic_Fine_Management_Process'
-path = '../data/'
+def clean_and_save_logs(folder_path='./uploads/Road_Traffic_Fine_Management_Process.xes/', GEMINI_API_KEY=None):
+    files = os.listdir(folder_path)
 
-# %%
-GEMINI_API_KEY = 'AIzaSyCs86xeV1Bh1sEsfqwROdhyarpHu0gC0JQ'
-PERPLEXITY_API_KEY = "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"
+    log_file = next((f for f in files if f.endswith('.xes') or f.endswith('.xes.gz')), None)
+    desc_file = next((f for f in files if f.endswith('.txt')), None)
 
-# %%
-clean_df = preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path='../data/')
+    if log_file is None or desc_file is None:
+        print("[⚠️] Không tìm thấy file log (.xes/.xes.gz) hoặc file mô tả (.txt)")
+        return None
 
+    clean_df = preprocess_event_logs(
+        input_file_name=log_file,
+        description_file_name=desc_file,
+        GEMINI_API_KEY=GEMINI_API_KEY,
+        path=folder_path
+    )
 
-if clean_df is not None:
-    # Chuyển timestamp về đúng định dạng
+    if clean_df is None:
+        print("[⚠️] Không có logs nào được lưu vì quá trình preprocessing bị dừng.")
+        return None
+
+    # Chuẩn hoá timestamp
     clean_df = pm4py.objects.log.util.dataframe_utils.convert_timestamp_columns_in_df(clean_df)
 
-    # Convert to EventLog và lưu file .xes.gz
+    # Convert sang EventLog
     event_log = pm4py.objects.conversion.log.converter.apply(clean_df)
-    pm4py.write_xes(event_log, path + output_file_name)
-    print(f"[✅] Logs đã được lưu thành công vào: {output_file_name}")
-else:
-    print("[⚠️] Không có logs nào được lưu vì quá trình preprocessing bị dừng.")
+
+    # Đảm bảo chỉ thêm _cleaned 1 lần
+    base_name = log_file.replace('.xes.gz', '').replace('.xes', '')
+    output_file = f"{base_name}_cleaned.xes"
+    output_path = os.path.join(folder_path, output_file)
+
+    pm4py.write_xes(event_log, output_path)
+    print(f"[✅] Logs đã được lưu thành công vào: {output_path}")
+    return output_file
+
+
+
+
+
+
+
+
+
