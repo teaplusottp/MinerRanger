@@ -10,6 +10,12 @@ import {
   CDropdownMenu,
   CDropdownItem,
   CButton,
+  CModal,
+  CModalHeader,
+  CModalBody,
+  CModalFooter,
+ 
+  CFormTextarea 
 } from '@coreui/react'
 import { useDb } from '/src/context/DbContext.js'
 
@@ -18,6 +24,11 @@ const AppHeader = ({ onOpenChat }) => {
   const [loaded, setLoaded] = useState(false)
   const { setSelectedDb } = useDb()
   const fileInputRef = useRef(null)
+
+  // state cho popup upload
+  const [visible, setVisible] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [textValue, setTextValue] = useState("")
 
   const fetchDatabases = async () => {
     try {
@@ -31,29 +42,41 @@ const AppHeader = ({ onOpenChat }) => {
     }
   }
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      const res = await fetch("http://127.0.0.1:8000/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const data = await res.json()
-      if (res.ok) {
-        alert("✅ Upload thành công: " + data.filename)
-      } else {
-        alert("❌ Upload lỗi: " + (data.error || "Không rõ"))
-      }
-    } catch (err) {
-      console.error("Lỗi upload:", err)
-      alert("❌ Không kết nối được server")
-    }
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files[0])
   }
+const handleSubmit = async () => {
+  if (!selectedFile) {
+    alert("⚠️ Vui lòng chọn file!")
+    return
+  }
+
+  const formData = new FormData()
+  formData.append("file", selectedFile)
+  if (textValue.trim()) {
+    formData.append("note", textValue) // text có thì gửi, không có thì thôi
+  }
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/upload", {
+      method: "POST",
+      body: formData,
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert("✅ Upload thành công: " + data.filename)
+      setVisible(false)   // đóng popup ngay khi thành công
+      setSelectedFile(null)
+      setTextValue("")
+    } else {
+      alert("❌ Upload lỗi: " + (data.error || "Không rõ"))
+    }
+  } catch (err) {
+    console.error("Lỗi upload:", err)
+    alert("❌ Không kết nối được server")
+  }
+}
+
 
   return (
     <CHeader position="sticky" className="mb-4">
@@ -104,28 +127,69 @@ const AppHeader = ({ onOpenChat }) => {
               Chatbot
             </CNavLink>
           </CNavItem>
-        </CHeaderNav>
 
-        
-          {/* Upload file */}
+          {/* Upload popup trigger */}
           <CNavItem>
             <CButton
               color="info"
               variant="outline"
-              onClick={() => fileInputRef.current.click()}
+              onClick={() => setVisible(true)}
             >
               Upload File
             </CButton>
-            <input
-              type="file"
-              accept=".xes"
-              ref={fileInputRef}
-              style={{ display: "none" }}
-              onChange={handleFileChange}
-            />
           </CNavItem>
-
+        </CHeaderNav>
       </CContainer>
+
+      {/* Modal upload */}
+      <CModal visible={visible} onClose={() => setVisible(false)}
+        backdrop="static"   // ⬅️ không cho click outside đóng modal
+  keyboard={false} 
+         size="lg"
+       
+       >
+
+        <CModalHeader closeButton>Upload File & Input Text</CModalHeader>
+        <CModalBody>
+          {/* Nút chọn file */}
+          <CButton
+            color="secondary"
+            variant="outline"
+            onClick={() => fileInputRef.current.click()}
+          >
+            Choose File
+          </CButton>
+          <input
+            type="file"
+            accept=".xes"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+          {selectedFile && <p className="mt-2">📄 {selectedFile.name}</p>}
+
+          {/* Ô nhập text */}
+<CFormTextarea
+  rows={6}                     // số dòng hiển thị mặc định
+  placeholder="Nhập ghi chú..."
+  className="mt-3"
+  value={textValue}
+  onChange={(e) => setTextValue(e.target.value)}
+/>
+        </CModalBody>
+        <CModalFooter>
+          <CButton color="secondary" onClick={() => setVisible(false)}>
+            Cancel
+          </CButton>
+          <CButton
+            color="primary"
+            onClick={handleSubmit}
+            disabled={!selectedFile || !textValue.trim()}
+          >
+            Submit
+          </CButton>
+        </CModalFooter>
+      </CModal>
     </CHeader>
   )
 }

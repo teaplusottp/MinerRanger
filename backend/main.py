@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Response, Query
+from fastapi import FastAPI, UploadFile, File, Response, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
@@ -82,16 +82,38 @@ def get_static_file(filename: str):
         return FileResponse(file_path)
     return JSONResponse(status_code=404, content={"error": "File not found"})
 
-@app.post("/upload")   # ✅ FastAPI style
-async def upload_file(file: UploadFile = File(...)):
+
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    note: str = Form(None)   # text nhập từ frontend
+):
     if not file.filename.endswith(".xes"):
         return JSONResponse(status_code=400, content={"error": "Chỉ chấp nhận file .xes"})
 
-    save_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    # Lấy tên file (bỏ đuôi .xes) để làm tên folder
+    folder_name = os.path.splitext(file.filename)[0]
+    save_dir = os.path.join(UPLOAD_FOLDER, folder_name)
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Lưu file .xes vào trong folder
+    save_path = os.path.join(save_dir, file.filename)
     with open(save_path, "wb") as f:
         f.write(await file.read())
 
-    return {"message": "Upload thành công", "filename": file.filename}
+    # Nếu có note thì ghi vào README.txt
+    if note:
+        readme_path = os.path.join(save_dir, "README.txt")
+        with open(readme_path, "w", encoding="utf-8") as f:
+            f.write(note)
+        #print(note)
+
+    return {
+        "message": "✅ Upload thành công",
+        "filename": file.filename,
+        "folder": folder_name,
+        "note": note or ""
+    }
 
 @app.get("/api/sidebar")
 def get_sidebar():
