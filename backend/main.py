@@ -51,36 +51,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # backend/
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "demo")
 
-# Kiểm tra trước xem folder tồn tại
 if not os.path.exists(STATIC_DIR):
     raise RuntimeError(f"Folder static không tồn tại: {STATIC_DIR}")
 
+# Chỉ mount thôi, không define thêm endpoint /static/{filename}
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 @app.get("/graph")
 async def get_graph():
-    report_path = os.path.join(os.path.dirname(__file__), "demo", "report.json")
+    report_path = os.path.join(STATIC_DIR, "report.json")
     with open(report_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # map trực tiếp img_url sang static path
     if "performance_analysis" in data:
-        for val in data["performance_analysis"].values():
+        for key, val in data["performance_analysis"].items():
             if isinstance(val, dict) and "img_url" in val:
-                val["img_url"] = f"/static/{os.path.basename(val['img_url'])}"
+                filename = os.path.basename(val["img_url"])
+                val["img_url"] = f"/static/{filename}"  # frontend fetch đúng URL
 
     return JSONResponse(content=data)
 
-
-@app.get("/static/{filename}")
-def get_static_file(filename: str):
-    file_path = os.path.join(STATIC_DIR, filename)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    return JSONResponse(status_code=404, content={"error": "File not found"})
+# @app.get("/static/{filename}")
+# def get_static_file(filename: str):
+#     file_path = os.path.join(STATIC_DIR, filename)
+#     if os.path.exists(file_path):
+#         return FileResponse(file_path)
+#     return JSONResponse(status_code=404, content={"error": "File not found"})
 
 @app.post("/upload")   # ✅ FastAPI style
 async def upload_file(file: UploadFile = File(...)):
