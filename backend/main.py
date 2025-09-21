@@ -84,6 +84,17 @@ async def get_graph():
 
     return JSONResponse(content=data)
 
+def get_folder_name(filename: str) -> str:
+    # Nếu file kết thúc bằng .xes.gz thì bỏ luôn cả .xes.gz
+    if filename.endswith(".xes.gz"):
+        return filename[:-7]   # bỏ 7 ký tự ".xes.gz"
+    # Nếu chỉ có .xes
+    elif filename.endswith(".xes"):
+        return filename[:-4]   # bỏ 4 ký tự ".xes"
+    # Nếu không thì trả về tên gốc (không đuôi mở rộng)
+    else:
+        return os.path.splitext(filename)[0]
+
 
 @app.post("/upload")
 async def upload_file(
@@ -94,7 +105,7 @@ async def upload_file(
         return JSONResponse(status_code=400, content={"error": "Chỉ chấp nhận file .xes hoặc .xes.gz"})
 
     # Tạo folder con theo tên file (bỏ đuôi .xes)
-    folder_name = os.path.splitext(file.filename)[0]
+    folder_name =  get_folder_name(file.filename)
     save_dir = os.path.join(UPLOAD_FOLDER, folder_name)
     os.makedirs(save_dir, exist_ok=True)
 
@@ -111,6 +122,7 @@ async def upload_file(
 
     # ✅ Gọi convert_xes sau khi upload xong
     try:
+        print(UPLOAD_FOLDER + '/' + folder_name + '/')
         generated_file = clean_and_save_logs(folder_path = UPLOAD_FOLDER + '/' + folder_name + '/', GEMINI_API_KEY=GEMINI_API_KEY)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen clean event logs: {str(e)}"})
@@ -129,6 +141,7 @@ async def upload_file(
         "generated_file": generated_file, # đường dẫn file cleaned
         "generate_report": generated_report # file report đã được tạo ra chưa? 
     }
+
 @app.get("/api/sidebar")
 def get_sidebar():
     return {
@@ -178,3 +191,10 @@ def delete_chat(chat_id: int):
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
+
+
+
