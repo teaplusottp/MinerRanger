@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, UploadFile, File, Response, Form, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
 import subprocess
 import graphviz
 import uvicorn
@@ -10,8 +14,13 @@ import os
 import json
 from pydantic import BaseModel
 
-app = FastAPI()
 
+
+from process.generate_cleaned import clean_and_save_logs 
+from process.generate_json import gen_report
+from process.__init__ import *
+
+app = FastAPI()
 
 # dữ liệu giả theo từng DB
 stats_data = {
@@ -75,24 +84,51 @@ async def get_graph():
 
     return JSONResponse(content=data)
 
-# @app.get("/static/{filename}")
-# def get_static_file(filename: str):
-#     file_path = os.path.join(STATIC_DIR, filename)
-#     if os.path.exists(file_path):
-#         return FileResponse(file_path)
-#     return JSONResponse(status_code=404, content={"error": "File not found"})
 
-@app.post("/upload")   # ✅ FastAPI style
-async def upload_file(file: UploadFile = File(...)):
-    if not file.filename.endswith(".xes"):
-        return JSONResponse(status_code=400, content={"error": "Chỉ chấp nhận file .xes"})
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    note: str = Form(None)   # text nhập từ frontend
+):
+    if not file.filename.endswith(".xes") and not file.filename.endswith(".xes.gz"):
+        return JSONResponse(status_code=400, content={"error": "Chỉ chấp nhận file .xes hoặc .xes.gz"})
 
-    save_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    # Tạo folder con theo tên file (bỏ đuôi .xes)
+    folder_name = os.path.splitext(file.filename)[0]
+    save_dir = os.path.join(UPLOAD_FOLDER, folder_name)
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Lưu file .xes
+    save_path = os.path.join(save_dir, file.filename)
     with open(save_path, "wb") as f:
         f.write(await file.read())
 
-    return {"message": "Upload thành công", "filename": file.filename}
+    # Nếu có note thì ghi vào README.txt
+    if note:
+        readme_path = os.path.join(save_dir, "README.txt")
+        with open(readme_path, "w", encoding="utf-8") as f:
+            f.write(note)
 
+    # ✅ Gọi convert_xes sau khi upload xong
+    try:
+        generated_file = clean_and_save_logs(folder_path = UPLOAD_FOLDER + '/' + folder_name + '/', GEMINI_API_KEY=GEMINI_API_KEY)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen clean event logs: {str(e)}"})
+    
+    # ✅ Create report.json
+    try:
+        generated_report = gen_report(folder_path = UPLOAD_FOLDER + '/' + folder_name + '/', GEMINI_API_KEY=GEMINI_API_KEY)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen report file: {str(e)}"})
+
+    return {
+        "message": "✅ Upload + Gen thành công",
+        "filename": file.filename,
+        "folder": folder_name,
+        "note": note or "",
+        "generated_file": generated_file, # đường dẫn file cleaned
+        "generate_report": generated_report # file report đã được tạo ra chưa? 
+    }
 @app.get("/api/sidebar")
 def get_sidebar():
     return {

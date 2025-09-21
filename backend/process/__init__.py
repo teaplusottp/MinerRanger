@@ -1,0 +1,3 @@
+GEMINI_API_KEY = 'AIzaSyCs86xeV1Bh1sEsfqwROdhyarpHu0gC0JQ'
+PERPLEXITY_API_KEY = "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"
+UPLOAD_FOLDER = "upload"
