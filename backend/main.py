@@ -9,11 +9,11 @@ import os
 import json
 from pydantic import BaseModel
 
-from process.generate_cleaned import clean_and_save_logs # import hàm vừa viết
+from process.generate_cleaned import clean_and_save_logs 
+from process.generate_json import gen_report
 from process.__init__ import *
 
 app = FastAPI()
-
 
 # dữ liệu giả theo từng DB
 stats_data = {
@@ -87,16 +87,23 @@ async def upload_file(
 
     # ✅ Gọi convert_xes sau khi upload xong
     try:
-        generated_file =clean_and_save_logs(GEMINI_API_KEY=GEMINI_API_KEY)
+        generated_file = clean_and_save_logs(folder_path = UPLOAD_FOLDER + '/' + folder_name + '/', GEMINI_API_KEY=GEMINI_API_KEY)
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen file: {str(e)}"})
+        return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen clean event logs: {str(e)}"})
+    
+    # ✅ Create report.json
+    try:
+        generated_report = gen_report(folder_path = UPLOAD_FOLDER + '/' + folder_name + '/', GEMINI_API_KEY=GEMINI_API_KEY)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Lỗi khi gen report file: {str(e)}"})
 
     return {
         "message": "✅ Upload + Gen thành công",
         "filename": file.filename,
         "folder": folder_name,
         "note": note or "",
-        "generated_file": generated_file  # đường dẫn file cleaned
+        "generated_file": generated_file, # đường dẫn file cleaned
+        "generate_report": generated_report # file report đã được tạo ra chưa? 
     }
 @app.get("/api/sidebar")
 def get_sidebar():
