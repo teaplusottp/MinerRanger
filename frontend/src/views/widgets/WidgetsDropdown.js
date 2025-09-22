@@ -16,6 +16,7 @@ const { selectedDb } = useDb()
     if (!selectedDb) return
 
     fetch(`http://localhost:8000/stats?db=${selectedDb}`)
+      
       .then((res) => res.json())
       .then((data) => setStats(data))
       .catch((err) => console.error("Lỗi fetch stats:", err))

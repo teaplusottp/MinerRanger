@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext } from "react"
 const DbContext = createContext()
 
 export const DbProvider = ({ children }) => {
-  const [selectedDb, setSelectedDb] = useState("DB1")
+  const [selectedDb, setSelectedDb] = useState("")
   return (
     <DbContext.Provider value={{ selectedDb, setSelectedDb }}>
       {children}
