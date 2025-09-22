@@ -1,3 +1,8 @@
+from fastapi import FastAPI, UploadFile, File, Response, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, UploadFile, File, Response, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -5,6 +10,9 @@ from pydantic import BaseModel
 import uvicorn
 import os
 import json
+from pydantic import BaseModel
+
+
 
 # Import các hàm xử lý riêng
 from process.generate_cleaned import clean_and_save_logs 
@@ -26,6 +34,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "demo")
+
+if not os.path.exists(STATIC_DIR):
+    raise RuntimeError(f"Folder static không tồn tại: {STATIC_DIR}")
+
+# Chỉ mount thôi, không define thêm endpoint /static/{filename}
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 
 
 # ===================== Utils =====================
@@ -56,10 +74,16 @@ def get_databases():
 
 @app.get("/graph")
 async def get_graph():
-    """Trả về report demo"""
     report_path = os.path.join(os.path.dirname(__file__), "demo", "report.json")
     with open(report_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    if "performance_analysis" in data:
+        for key, val in data["performance_analysis"].items():
+            if isinstance(val, dict) and "img_url" in val:
+                filename = os.path.basename(val["img_url"])
+                val["img_url"] = f"http://localhost:8000/static/{filename}"
+
     return JSONResponse(content=data)
 
 

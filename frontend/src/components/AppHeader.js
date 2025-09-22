@@ -21,9 +21,9 @@ import {
   CListGroupItem,
 } from '@coreui/react'
 import { useDb } from '/src/context/DbContext.js'
-import upload from '../../public/file.png'
+import upload from '../assets/images/file.png'
 //import chatbot from '../assets/images/chatbot.png'
-import chatbot from '../../public/chatbot.png'
+import chatbot from '../assets/images/chatbot.png'
 
 const AppHeader = ({ onOpenChat }) => {
   const [dbList, setDbList] = useState([])
