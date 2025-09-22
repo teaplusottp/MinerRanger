@@ -193,16 +193,22 @@ const EdgeMatrix = ({ title, edges }) => {
 };
 
 const UnwantedComboChart = ({ title, rows }) => {
-  // Chuẩn hoá field activity label
   const actLabel = (d) => d.activity_name ?? d.activity ?? d.name ?? "";
 
-  // scale
-  const maxCount = Math.max(...rows.map((d) => d.count || 0), 1);
-  const maxPct100 = Math.max(...rows.map((d) => (d.percentage || 0) * 100), 1);
-  const maxY = Math.max(maxCount, maxPct100);
+  // Max count làm tròn lên bội số của 50
+  const rawMax = Math.max(...rows.map((d) => d.count || 0), 1);
+  const maxCount = Math.ceil(rawMax / 50) * 50;
 
-  // ticks (5 vạch)
-  const ticks = Array.from({ length: 6 }, (_, i) => Math.round((i * maxY) / 5));
+  const maxPct = 100;
+  const chartHeight = 400;
+  const innerHeight = chartHeight - 100; // padding top/bottom
+
+  const countTicks = Array.from({ length: 6 }, (_, i) =>
+    Math.round((i * maxCount) / 5)
+  );
+  const pctTicks = Array.from({ length: 6 }, (_, i) =>
+    Math.round((i * maxPct) / 5)
+  );
 
   return (
     <div style={{ marginTop: "24px" }}>
@@ -212,19 +218,46 @@ const UnwantedComboChart = ({ title, rows }) => {
         style={{
           position: "relative",
           width: "100%",
-          minHeight: "320px",
+          height: chartHeight,
           background: "rgba(255,255,255,0.05)",
           borderRadius: "8px",
-          padding: "40px 60px 40px 60px", // chừa 2 bên cho 2 trục
+          padding: "40px 60px 60px 60px",
         }}
       >
-        {/* Trục Y trái - Count */}
+        {/* Grid lines */}
+        <div
+          style={{
+            position: "absolute",
+            left: "60px",
+            right: "60px",
+            top: "40px",
+            bottom: "60px",
+          }}
+        >
+          {countTicks.map((t, i) => {
+            const y = (i / 5) * innerHeight;
+            return (
+              <div
+                key={`grid-${i}`}
+                style={{
+                  position: "absolute",
+                  bottom: `${y}px`,
+                  left: 0,
+                  right: 0,
+                  borderTop: "1px dashed rgba(255,255,255,0.1)",
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Trục Count (trái) */}
         <div
           style={{
             position: "absolute",
             left: "10px",
-            top: "30px",
-            bottom: "40px",
+            top: "40px",
+            bottom: "60px",
             width: "40px",
             display: "flex",
             flexDirection: "column-reverse",
@@ -233,20 +266,20 @@ const UnwantedComboChart = ({ title, rows }) => {
             fontSize: "12px",
           }}
         >
-          {ticks.map((t, i) => (
+          {countTicks.map((t, i) => (
             <div key={`l-${i}`} style={{ textAlign: "right" }}>
               {t}
             </div>
           ))}
         </div>
 
-        {/* Trục Y phải - Percentage */}
+        {/* Trục Percentage (phải) */}
         <div
           style={{
             position: "absolute",
             right: "10px",
-            top: "30px",
-            bottom: "40px",
+            top: "40px",
+            bottom: "60px",
             width: "40px",
             display: "flex",
             flexDirection: "column-reverse",
@@ -255,141 +288,95 @@ const UnwantedComboChart = ({ title, rows }) => {
             fontSize: "12px",
           }}
         >
-          {ticks.map((t, i) => (
+          {pctTicks.map((t, i) => (
             <div key={`r-${i}`} style={{ textAlign: "left" }}>
-              {Math.round((t / 1) * (100 / maxY))}%
+              {t}%
             </div>
           ))}
         </div>
 
-        {/* Lưới ngang */}
+        {/* Bars */}
         <div
           style={{
             position: "absolute",
             left: "60px",
             right: "60px",
-            top: "30px",
-            bottom: "40px",
-          }}
-        >
-          {ticks.map((t, i) => (
-            <div
-              key={`g-${i}`}
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: `${(t / maxY) * 100}%`,
-                height: 1,
-                background: "rgba(255,255,255,0.15)",
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Vùng cột */}
-        <div
-          style={{
-            position: "relative",
+            top: "40px",
+            bottom: "60px",
             display: "flex",
             alignItems: "flex-end",
-            gap: "18px",
-            height: "100%",
-            minHeight: "240px",
-            paddingTop: "30px",
-            paddingBottom: "40px",
-            paddingLeft: "60px",
-            paddingRight: "60px",
+            gap: "40px",
+            justifyContent: "center",
           }}
         >
           {rows.map((d, i) => {
-            const countH = (Math.min(d.count || 0, maxY) / maxY) * 100;
-            const pctH = (Math.min((d.percentage || 0) * 100, maxY) / maxY) * 100;
+            const countH = (d.count / maxCount) * innerHeight;
+            const pctH = ((d.percentage || 0) * 100 / maxPct) * innerHeight;
+
             return (
-              <div key={i} style={{ textAlign: "center", flex: `1 1 ${100 / rows.length}%` }}>
-                <div style={{ display: "flex", gap: "8px", alignItems: "flex-end", justifyContent: "center" }}>
-                  {/* Count bar (left) */}
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}>
+                  {/* Count bar */}
                   <div style={{ position: "relative" }}>
                     <div
                       style={{
-                        width: "22px",
-                        height: `${countH}%`,
+                        width: "28px",
+                        height: `${countH}px`,
                         background: "#4fc3f7",
                         borderRadius: "4px 4px 0 0",
                       }}
-                      title={`Count: ${d.count}`}
                     />
                     <div
                       style={{
                         position: "absolute",
-                        bottom: `${countH}%`,
+                        bottom: `${countH + 4}px`,
                         left: "50%",
-                        transform: "translate(-50%, -6px)",
+                        transform: "translateX(-50%)",
                         fontSize: "11px",
                         color: "white",
-                        whiteSpace: "nowrap",
                       }}
                     >
                       {d.count}
                     </div>
                   </div>
 
-                  {/* Percentage bar (right) */}
+                  {/* Percentage bar */}
                   <div style={{ position: "relative" }}>
                     <div
                       style={{
-                        width: "22px",
-                        height: `${pctH}%`,
+                        width: "28px",
+                        height: `${pctH}px`,
                         background: "#ffb74d",
                         borderRadius: "4px 4px 0 0",
                       }}
-                      title={`Percentage: ${((d.percentage || 0) * 100).toFixed(2)}%`}
                     />
                     <div
                       style={{
                         position: "absolute",
-                        bottom: `${pctH}%`,
+                        bottom: `${pctH + 4}px`,
                         left: "50%",
-                        transform: "translate(-50%, -6px)",
+                        transform: "translateX(-50%)",
                         fontSize: "11px",
                         color: "white",
-                        whiteSpace: "nowrap",
                       }}
                     >
-                      {((d.percentage || 0) * 100).toFixed(2)}%
+                      {((d.percentage || 0) * 100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
-                <div style={{ marginTop: "8px", fontSize: "0.8rem", maxWidth: 160, marginInline: "auto" }}>
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "0.8rem",
+                    maxWidth: "140px",
+                    whiteSpace: "normal",
+                  }}
+                >
                   {actLabel(d)}
                 </div>
               </div>
             );
           })}
-        </div>
-
-        {/* Chú thích */}
-        <div
-          style={{
-            position: "absolute",
-            left: "60px",
-            right: "60px",
-            bottom: "8px",
-            display: "flex",
-            gap: "16px",
-            justifyContent: "center",
-            fontSize: "12px",
-            color: "rgba(255,255,255,0.85)",
-          }}
-        >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <i style={{ width: 12, height: 12, background: "#4fc3f7", display: "inline-block" }} />
-            Count
-          </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <i style={{ width: 12, height: 12, background: "#ffb74d", display: "inline-block" }} />
-            Percentage
-          </span>
         </div>
       </div>
     </div>
