@@ -1,14 +1,32 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { CSpinner } from "@coreui/react";
-import ForceGraph2D from "react-force-graph-2d";
 
-const splitInsight = (insight) =>
+/* ======================= Helpers & Styling ======================= */
+
+// Ghép URL ảnh (nếu server trả filename) → /static/<file>
+const toStaticUrl = (u) => {
+  const s = String(u || "");
+  if (!s) return s;
+  if (s.startsWith("http") || s.startsWith("/")) return s;
+  return `http://localhost:8000/static/${s}`;
+};
+
+const splitInsight = (insight, accent = "#ff6f61") =>
   insight
     ? insight
         .split(/(?<=\.)\s+|(?<=\.)\n+/)
         .filter((line) => line.trim() !== "")
         .map((line, idx) => (
-          <div key={idx} style={{ marginBottom: "4px" }}>
+          <div
+            key={idx}
+            style={{
+              marginBottom: "6px",
+              padding: "8px 12px",
+              borderLeft: `4px solid ${accent}`,
+              background: `${accent}22`,
+              borderRadius: "6px",
+            }}
+          >
             • {line}
           </div>
         ))
@@ -26,7 +44,7 @@ const parseEdgeTuple = (edgeStr) => {
   return m ? [m[1], m[2]] : [];
 };
 
-// dạng mảng matrix style:  [ [ [from, to], count ], ... ]
+// Kiểu matrix: [ [ [from, to], value ], ... ]
 const isEdgeMatrixArray = (data) => {
   if (!Array.isArray(data) || data.length === 0) return false;
   const first = data[0];
@@ -40,7 +58,7 @@ const isEdgeMatrixArray = (data) => {
   );
 };
 
-// dạng unwanted stats: [{ activity_name, count, percentage }, ...]
+// Kiểu unwanted stats: [{ activity_name|name|activity, count, percentage }, ...]
 const isUnwantedStatArray = (data) => {
   if (!Array.isArray(data) || data.length === 0) return false;
   const f = data[0];
@@ -53,47 +71,74 @@ const isUnwantedStatArray = (data) => {
   );
 };
 
-// ================== Small generic pieces ==================
-const MetricCards = ({ entries }) => {
+// Màu chủ đạo theo group
+const groupAccents = {
+  basic: "#42a5f5",       // xanh lam
+  process: "#ff6f61",     // đỏ cam
+  performance: "#7e57c2", // tím
+  conformance: "#26a69a", // xanh ngọc
+  enhancement: "#ffa726", // cam vàng
+};
+
+/* ======================= Generic Pieces ======================= */
+
+const SectionTitle = ({ children, accent }) => (
+  <h3
+    style={{
+      marginBottom: "16px",
+      fontWeight: 800,
+      fontSize: "1.4rem",
+      background: `linear-gradient(90deg, ${accent}, ${accent}aa)`,
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+    }}
+  >
+    {children}
+  </h3>
+);
+
+const Block = ({ children }) => (
+  <div
+    style={{
+      background: "rgba(255,255,255,0.06)",
+      border: "1px solid rgba(255,255,255,0.15)",
+      borderRadius: "14px",
+      padding: "20px",
+      marginBottom: "24px",
+    }}
+  >
+    {children}
+  </div>
+);
+
+// Thẻ số: dùng accent (nhạt hơn title), insight còn nhạt hơn nữa
+const MetricCards = ({ entries, accent }) => {
   if (!entries?.length) return null;
   return (
-    <div style={{ display: "flex", gap: "15px", marginBottom: "20px", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: "20px", marginBottom: "22px", flexWrap: "wrap" }}>
       {entries.map(([key, value], idx) => (
-      // MetricCards
-      <div
-        key={idx}
-        style={{
-          flex: "1 1 150px",
-          background: "linear-gradient(135deg, rgba(63,81,181,0.8), rgba(33,150,243,0.6))",
-          padding: "18px",
-          borderRadius: "12px",
-          textAlign: "center",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
-          transition: "transform 0.2s ease, box-shadow 0.2s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "translateY(-4px)";
-          e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.3)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-          e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.25)";
-        }}
-      >
-        <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.8)" }}>
-          {titleCase(key)}
+        <div
+          key={idx}
+          style={{
+            flex: "1 1 180px",
+            background: `${accent}55`,
+            padding: "20px",
+            borderRadius: "14px",
+            textAlign: "center",
+            boxShadow: `0 4px 10px ${accent}44`,
+            border: `1px solid ${accent}66`,
+          }}
+        >
+          <div style={{ fontSize: "1rem", color: "#fff", opacity: 0.95 }}>{titleCase(key)}</div>
+          <div style={{ fontSize: "1.9rem", fontWeight: 800, color: "#fff" }}>{value}</div>
         </div>
-        <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff" }}>
-          {value}
-        </div>
-      </div>
-
       ))}
     </div>
   );
 };
 
-const HorizontalBars = ({ chartKey, chart }) => {
+// Bar ngang (mỗi cột 1 màu trơn = accent của group)
+const HorizontalBars = ({ chartKey, chart, accent }) => {
   const labels = chart?.data?.[0] || [];
   const values = chart?.data?.[1] || [];
   const maxVal = values.length ? Math.max(...values) : 0;
@@ -104,46 +149,46 @@ const HorizontalBars = ({ chartKey, chart }) => {
       style={{
         flex: "1 1 45%",
         minWidth: "320px",
-        backgroundColor: "rgba(255,255,255,0.1)",
-        padding: "15px",
-        borderRadius: "8px",
-        marginBottom: "20px",
+        backgroundColor: "rgba(255,255,255,0.08)",
+        padding: "20px",
+        borderRadius: "12px",
+        marginBottom: "22px",
+        border: `1px solid ${accent}44`,
       }}
     >
-      <h4 style={{ marginBottom: "10px" }}>{titleCase(chartKey)}</h4>
+      <h4 style={{ marginBottom: "14px", fontWeight: 700, fontSize: "1.1rem", color: accent }}>
+        {titleCase(chartKey)}
+      </h4>
       {labels.map((label, i) => {
         const val = values[i] || 0;
         const pct = maxVal ? (val / maxVal) * 100 : 0;
         const displayLabel = chartKey.toLowerCase().includes("variant") ? cleanVariantLabel(label) : label;
         return (
-          <div key={`${label}-${i}`} style={{ marginBottom: "8px" }}>
-            <div style={{ marginBottom: "3px", fontSize: "0.85rem" }}>{displayLabel}</div>
+          <div key={`${label}-${i}`} style={{ marginBottom: "12px" }}>
+            <div style={{ marginBottom: "6px", fontSize: "0.9rem", color: "#eee" }}>{displayLabel}</div>
             <div
               style={{
-                background: "rgba(255,255,255,0.1)",
-                borderRadius: "4px",
-                height: "30px",
-                position: "relative",
+                background: "rgba(255,255,255,0.12)",
+                borderRadius: "8px",
+                height: "28px",
+                border: `1px solid ${accent}33`,
               }}
             >
               <div
                 style={{
                   width: `${pct}%`,
                   height: "100%",
-                  background: "linear-gradient(90deg, #42a5f5, #1e88e5)",
-                  borderRadius: "4px",
+                  background: accent,
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontWeight: 700,
+                  paddingLeft: "8px",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "flex-start",
-                  paddingLeft: "8px",
-                  color: "#fff",
-                  fontWeight: 600,
-                  boxShadow: "inset 0 0 4px rgba(0,0,0,0.3)",
                 }}
               >
                 {val}
               </div>
-
             </div>
           </div>
         );
@@ -152,30 +197,27 @@ const HorizontalBars = ({ chartKey, chart }) => {
   );
 };
 
-// ================== Special renderers ==================
-const EdgeMatrix = ({ title, edges }) => {
-  const nodes = useMemo(() => Array.from(new Set(edges.flatMap(([pair]) => pair))), [edges]);
+/* ======================= Special Renderers ======================= */
 
+// Bảng ma trận (dùng accent của group cho viền/đầu bảng/ô có dữ liệu)
+const EdgeMatrix = ({ title, edges, accent }) => {
+  const nodes = useMemo(() => Array.from(new Set(edges.flatMap(([pair]) => pair))), [edges]);
   const matrixData = useMemo(
-    () =>
-      nodes.map((row) =>
-        nodes.map((col) => {
-          const found = edges.find(([[src, tgt]]) => src === row && tgt === col);
-          return found ? found[1] : "";
-        })
-      ),
+    () => nodes.map((row) => nodes.map((col) => edges.find(([[src, tgt]]) => src === row && tgt === col)?.[1] || "")),
     [edges, nodes]
   );
 
   return (
-    <div style={{ overflowX: "auto", marginTop: "20px" }}>
-      <h4 style={{ marginBottom: "10px" }}>{titleCase(title)}</h4>
-      <table style={{ borderCollapse: "collapse" }}>
+    <div style={{ overflowX: "auto", marginTop: "16px" }}>
+      <h4 style={{ marginBottom: "12px", fontWeight: 700, fontSize: "1.1rem", color: accent }}>
+        {titleCase(title)}
+      </h4>
+      <table style={{ borderCollapse: "collapse", background: "rgba(255,255,255,0.06)", borderRadius: "10px" }}>
         <thead>
           <tr>
-            <th style={{ border: "1px solid #666", padding: "6px 8px" }}></th>
+            <th style={{ border: `2px solid ${accent}`, padding: "6px 10px", background: `${accent}33` }}></th>
             {nodes.map((n, i) => (
-              <th key={i} style={{ border: "1px solid #666", padding: "6px 8px", whiteSpace: "nowrap" }}>
+              <th key={i} style={{ border: `2px solid ${accent}`, padding: "6px 10px", background: `${accent}33` }}>
                 {n}
               </th>
             ))}
@@ -184,15 +226,17 @@ const EdgeMatrix = ({ title, edges }) => {
         <tbody>
           {nodes.map((row, i) => (
             <tr key={i}>
-              <th style={{ border: "1px solid #666", padding: "6px 8px", whiteSpace: "nowrap" }}>{row}</th>
+              <th style={{ border: `2px solid ${accent}`, padding: "6px 10px", background: `${accent}33` }}>{row}</th>
               {matrixData[i].map((val, j) => (
                 <td
                   key={j}
                   style={{
-                    border: "1px solid #666",
-                    padding: "6px 8px",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    padding: "6px 10px",
                     textAlign: "center",
                     minWidth: "48px",
+                    background: val ? `${accent}22` : "transparent",
+                    color: "#fff",
                   }}
                 >
                   {val}
@@ -206,36 +250,44 @@ const EdgeMatrix = ({ title, edges }) => {
   );
 };
 
-const UnwantedComboChart = ({ title, rows }) => {
+// Bar dọc “unwanted” (giữ đúng 2 màu cố định cho 2 loại cột, có trục + ticks + số)
+const UnwantedComboChart = ({ title, rows, accent }) => {
   const actLabel = (d) => d.activity_name ?? d.activity ?? d.name ?? "";
-
-  // Max count làm tròn lên bội số của 50
   const rawMax = Math.max(...rows.map((d) => d.count || 0), 1);
   const maxCount = Math.ceil(rawMax / 50) * 50;
 
-  const maxPct = 100;
-  const chartHeight = 400;
-  const innerHeight = chartHeight - 100; // padding top/bottom
+  // phần trăm có thể 0–1 hoặc 0–100
+  const pctFraction = (p) => {
+    if (p == null) return 0;
+    const v = Number(p);
+    if (Number.isNaN(v)) return 0;
+    return Math.max(0, Math.min(1, v > 1 ? v / 100 : v));
+  };
 
-  const countTicks = Array.from({ length: 6 }, (_, i) =>
-    Math.round((i * maxCount) / 5)
-  );
-  const pctTicks = Array.from({ length: 6 }, (_, i) =>
-    Math.round((i * maxPct) / 5)
-  );
+  const chartHeight = 420;
+  const innerHeight = chartHeight - 100; // padding top/bottom
+  const countTicks = Array.from({ length: 6 }, (_, i) => Math.round((i * maxCount) / 5));
+  const pctTicks = [0, 20, 40, 60, 80, 100];
+
+  // 2 màu cố định toàn dashboard
+  const COUNT_COLOR = "#42a5f5";
+  const PCT_COLOR = "#ef5350";
 
   return (
     <div style={{ marginTop: "24px" }}>
-      <h4 style={{ marginBottom: "12px" }}>{titleCase(title)}</h4>
+      <h4 style={{ marginBottom: "12px", fontWeight: 700, fontSize: "1.1rem", color: accent }}>
+        {titleCase(title)}
+      </h4>
 
       <div
         style={{
           position: "relative",
           width: "100%",
           height: chartHeight,
-          background: "rgba(255,255,255,0.05)",
-          borderRadius: "8px",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.18))",
+          borderRadius: "14px",
           padding: "40px 60px 60px 60px",
+          border: `1px solid ${accent}55`,
         }}
       >
         {/* Grid lines */}
@@ -248,7 +300,7 @@ const UnwantedComboChart = ({ title, rows }) => {
             bottom: "60px",
           }}
         >
-          {countTicks.map((t, i) => {
+          {pctTicks.map((_, i) => {
             const y = (i / 5) * innerHeight;
             return (
               <div
@@ -258,7 +310,7 @@ const UnwantedComboChart = ({ title, rows }) => {
                   bottom: `${y}px`,
                   left: 0,
                   right: 0,
-                  borderTop: "1px dashed rgba(255,255,255,0.1)",
+                  borderTop: `1px dashed ${accent}33`,
                 }}
               />
             );
@@ -272,18 +324,18 @@ const UnwantedComboChart = ({ title, rows }) => {
             left: "10px",
             top: "40px",
             bottom: "60px",
-            width: "40px",
+            width: "44px",
             display: "flex",
             flexDirection: "column-reverse",
             justifyContent: "space-between",
-            color: "rgba(255,255,255,0.7)",
+            color: COUNT_COLOR,
             fontSize: "12px",
+            fontWeight: 700,
+            textAlign: "right",
           }}
         >
           {countTicks.map((t, i) => (
-            <div key={`l-${i}`} style={{ textAlign: "right" }}>
-              {t}
-            </div>
+            <div key={`l-${i}`}>{t}</div>
           ))}
         </div>
 
@@ -294,18 +346,18 @@ const UnwantedComboChart = ({ title, rows }) => {
             right: "10px",
             top: "40px",
             bottom: "60px",
-            width: "40px",
+            width: "44px",
             display: "flex",
             flexDirection: "column-reverse",
             justifyContent: "space-between",
-            color: "rgba(255,255,255,0.7)",
+            color: PCT_COLOR,
             fontSize: "12px",
+            fontWeight: 700,
+            textAlign: "left",
           }}
         >
           {pctTicks.map((t, i) => (
-            <div key={`r-${i}`} style={{ textAlign: "left" }}>
-              {t}%
-            </div>
+            <div key={`r-${i}`}>{t}%</div>
           ))}
         </div>
 
@@ -325,19 +377,21 @@ const UnwantedComboChart = ({ title, rows }) => {
         >
           {rows.map((d, i) => {
             const countH = (d.count / maxCount) * innerHeight;
-            const pctH = ((d.percentage || 0) * 100 / maxPct) * innerHeight;
+            const pf = pctFraction(d.percentage);
+            const pctH = pf * innerHeight;
 
             return (
               <div key={i} style={{ textAlign: "center" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}>
+                <div style={{ display: "flex", gap: "14px", alignItems: "flex-end" }}>
                   {/* Count bar */}
                   <div style={{ position: "relative" }}>
                     <div
                       style={{
                         width: "28px",
                         height: `${countH}px`,
-                        background: "#4fc3f7",
-                        borderRadius: "4px 4px 0 0",
+                        background: COUNT_COLOR,
+                        borderRadius: "6px 6px 0 0",
+                        border: `1px solid ${COUNT_COLOR}bb`,
                       }}
                     />
                     <div
@@ -347,7 +401,9 @@ const UnwantedComboChart = ({ title, rows }) => {
                         left: "50%",
                         transform: "translateX(-50%)",
                         fontSize: "11px",
-                        color: "white",
+                        color: "#fff",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                        fontWeight: 700,
                       }}
                     >
                       {d.count}
@@ -360,8 +416,9 @@ const UnwantedComboChart = ({ title, rows }) => {
                       style={{
                         width: "28px",
                         height: `${pctH}px`,
-                        background: "#ffb74d",
-                        borderRadius: "4px 4px 0 0",
+                        background: PCT_COLOR,
+                        borderRadius: "6px 6px 0 0",
+                        border: `1px solid ${PCT_COLOR}bb`,
                       }}
                     />
                     <div
@@ -371,19 +428,22 @@ const UnwantedComboChart = ({ title, rows }) => {
                         left: "50%",
                         transform: "translateX(-50%)",
                         fontSize: "11px",
-                        color: "white",
+                        color: "#fff",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                        fontWeight: 700,
                       }}
                     >
-                      {((d.percentage || 0) * 100).toFixed(1)}%
+                      {(pf * 100).toFixed(1)}%
                     </div>
                   </div>
                 </div>
                 <div
                   style={{
-                    marginTop: "6px",
-                    fontSize: "0.8rem",
-                    maxWidth: "140px",
+                    marginTop: "8px",
+                    fontSize: "0.86rem",
+                    maxWidth: "150px",
                     whiteSpace: "normal",
+                    color: "#eee",
                   }}
                 >
                   {actLabel(d)}
@@ -397,7 +457,8 @@ const UnwantedComboChart = ({ title, rows }) => {
   );
 };
 
-// ================== Component ==================
+/* ======================= Main Component ======================= */
+
 function GraphView() {
   const [report, setReport] = useState(null);
 
@@ -408,41 +469,40 @@ function GraphView() {
       .catch((err) => console.error("Error fetching report:", err));
   }, []);
 
-  if (!report) return <CSpinner color="primary" />;
+  if (!report) {
+    return (
+      <div
+        style={{
+          minHeight: "50vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(135deg, #1e1e2f, #121212)",
+        }}
+      >
+        <CSpinner color="primary" />
+      </div>
+    );
+  }
 
-  // ===== Group 1: Basic Statistics =====
+  /* ===== Group 1: Basic Statistics ===== */
   const renderBasicStatistics = () => {
     const stats = report.basic_statistics || {};
     if (!stats || typeof stats !== "object") return null;
 
-    // Cards (chỉ numeric)
     const cards = Object.entries(stats).filter(([, v]) => typeof v === "number");
-
-    // Charts (bất kỳ key có .data là dạng [labels, values])
-    const chartEntries = Object.entries(stats).filter(
-      ([, v]) => v && typeof v === "object" && Array.isArray(v.data)
-    );
+    const chartEntries = Object.entries(stats).filter(([, v]) => v && typeof v === "object" && Array.isArray(v.data));
 
     return (
-      <div style={{ marginTop: "30px" }}>
-        <h3
-          style={{
-            marginBottom: "15px",
-            fontWeight: 700,
-            fontSize: "1.4rem",
-            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "0.5px",
-          }}
-        >{titleCase("Basic Statistics")}</h3>
+      <Block>
+        <SectionTitle accent={groupAccents.basic}>{titleCase("Basic Statistics")}</SectionTitle>
 
-        {cards.length > 0 && <MetricCards entries={cards} />}
+        {cards.length > 0 && <MetricCards entries={cards} accent={groupAccents.basic} />}
 
         {chartEntries.length > 0 && (
-          <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             {chartEntries.map(([k, v]) => (
-              <HorizontalBars key={k} chartKey={k} chart={v} />
+              <HorizontalBars key={k} chartKey={k} chart={v} accent={groupAccents.basic} />
             ))}
           </div>
         )}
@@ -450,149 +510,106 @@ function GraphView() {
         {stats.insights && (
           <div
             style={{
-              backgroundColor: "rgba(255,255,255,0.05)",
-              padding: "15px",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              color: "rgba(255,255,255,0.85)",
-              fontStyle: "italic",
+              marginTop: "10px",
+              borderRadius: "12px",
+              background: `${groupAccents.basic}11`,
+              padding: "14px",
+              border: `1px solid ${groupAccents.basic}55`,
+              color: "rgba(255,255,255,0.95)",
             }}
           >
-            {splitInsight(stats.insights)}
+            {splitInsight(stats.insights, groupAccents.basic)}
           </div>
         )}
-      </div>
+      </Block>
     );
   };
 
-  // ===== Group 2: Process Discovery =====
+  /* ===== Group 2: Process Discovery ===== */
   const renderProcessDiscovery = () => {
     const pd = report.process_discovery;
     if (!pd || typeof pd !== "object") return null;
 
-    const { insights, dfg_freq = {}, dfg_perf = {} } = pd;
+    // card số
+    const cards = Object.entries(pd).filter(([k, v]) => k !== "insights" && typeof v === "number");
 
-    // metric cards: mọi numeric field
-    const cards = Object.entries(pd).filter(
-      ([k, v]) => k !== "insights" && typeof v === "number"
-    );
-
-    // Graph DFG từ dfg_freq/perf
-    const nodesSet = new Set();
-    Object.keys(dfg_freq).forEach((edgeStr) => {
-      const [from, to] = parseEdgeTuple(edgeStr);
-      if (from && to) {
-        nodesSet.add(from);
-        nodesSet.add(to);
-      }
-    });
-    const nodes = Array.from(nodesSet).map((id) => ({ id }));
-    const links = Object.entries(dfg_freq)
-      .map(([edgeStr, freq]) => {
-        const [from, to] = parseEdgeTuple(edgeStr);
-        if (!from || !to) return null;
-        const perf = dfg_perf[edgeStr] ?? 0;
-        return { source: from, target: to, freq, perf, label: `F:${freq} P:${perf}` };
-      })
-      .filter(Boolean);
-
-    // Images (nếu có) — ví dụ bpmn_model
+    // ảnh (nếu có các field có img_url)
     const images = Object.entries(pd)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
-      .map(([k, v]) => ({ key: k, url: v.img_url }));
+      .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
 
     return (
-      <div style={{ marginTop: "30px" }}>
-        <h3
-          style={{
-            marginBottom: "15px",
-            fontWeight: 700,
-            fontSize: "1.4rem",
-            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "0.5px",
-          }}
-        >{titleCase("Process Discovery")}</h3>
+      <Block>
+        <SectionTitle accent={groupAccents.process}>{titleCase("Process Discovery")}</SectionTitle>
 
-        {cards.length > 0 && <MetricCards entries={cards} />}
+        {cards.length > 0 && <MetricCards entries={cards} accent={groupAccents.process} />}
 
         {images.length > 0 && (
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", marginBottom: "20px" }}>
+          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", marginBottom: "14px" }}>
             {images.map((img, idx) => (
-              <div key={idx} style={{ flex: "1 1 380px", textAlign: "center" }}>
-                <h4 style={{ marginBottom: "10px" }}>{titleCase(img.key)}</h4>
+              <div
+                key={idx}
+                style={{
+                  flex: "1 1 380px",
+                  textAlign: "center",
+                  background: "rgba(255,255,255,0.06)",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  border: `1px solid ${groupAccents.process}44`,
+                }}
+              >
+                <h4 style={{ marginBottom: "10px", color: groupAccents.process, fontWeight: 700 }}>
+                  {titleCase(img.key)}
+                </h4>
                 <img
                   src={img.url}
                   alt={img.key}
-                  style={{ maxWidth: "100%", maxHeight: "360px", objectFit: "contain" }}
+                  style={{ maxWidth: "100%", maxHeight: "360px", objectFit: "contain", borderRadius: "8px" }}
                 />
               </div>
             ))}
           </div>
         )}
 
-        {links.length > 0 && (
+        {/* BPMN Model từ field bpmn_model (KHÔNG hardcode) */}
+        {pd.bpmn_model && (
           <div
             style={{
-              height: "520px",
-              border: "1px solid rgba(255,255,255,0.2)",
-              marginBottom: "20px",
+              textAlign: "center",
+              background: "rgba(255,255,255,0.06)",
+              borderRadius: "12px",
+              padding: "12px",
+              border: `1px solid ${groupAccents.process}44`,
+              marginBottom: "16px",
             }}
           >
-            <ForceGraph2D
-              width={800}
-              height={600}
-              graphData={{ nodes, links }}
-              nodeRelSize={15}
-              nodeLabel="id"
-              nodeCanvasObject={(node, ctx, globalScale) => {
-                const r = 10;
-                ctx.fillStyle = "#87CEEB";
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-                ctx.fill();
-                ctx.fillStyle = "white";
-                ctx.font = `${12 / globalScale}px Sans-Serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(node.id, node.x, node.y);
-              }}
-              linkWidth={2}
-              linkColor={() => "#A9A9A9"}
-              linkCanvasObject={(link, ctx, globalScale) => {
-                const midX = (link.source.x + link.target.x) / 2;
-                const midY = (link.source.y + link.target.y) / 2;
-                ctx.fillStyle = "white";
-                ctx.font = `${10 / globalScale}px Sans-Serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(link.label, midX, midY);
-              }}
-              d3AlphaDecay={1}
+            <h4 style={{ marginBottom: "10px", color: groupAccents.process, fontWeight: 700 }}>BPMN Model</h4>
+            <img
+              src={toStaticUrl(pd.bpmn_model)}
+              alt="BPMN Model"
+              style={{ maxWidth: "100%", maxHeight: "360px", objectFit: "contain", borderRadius: "8px" }}
             />
           </div>
         )}
 
-        {insights && (
+        {pd.insights && (
           <div
             style={{
-              backgroundColor: "rgba(255,255,255,0.05)",
+              backgroundColor: `${groupAccents.process}11`,
               padding: "15px",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              color: "rgba(255,255,255,0.85)",
-              fontStyle: "italic",
+              borderRadius: "12px",
+              border: `1px solid ${groupAccents.process}55`,
+              color: "rgba(255,255,255,0.95)",
             }}
           >
-            {splitInsight(insights)}
+            {splitInsight(pd.insights, groupAccents.process)}
           </div>
         )}
-      </div>
+      </Block>
     );
   };
 
-  // ===== Group 3: Performance Analysis =====
+  /* ===== Group 3: Performance Analysis ===== */
   const renderPerformanceAnalysis = () => {
     const pa = report.performance_analysis;
     if (!pa || typeof pa !== "object") return null;
@@ -601,40 +618,44 @@ function GraphView() {
       ([k, v]) => k !== "insights" && !(v && typeof v === "object") && typeof v !== "undefined"
     );
 
+    // KHÔI PHỤC 2 ẢNH (dotted_chart.png, throughput_time_density.png) — không hardcode tên
     const images = Object.entries(pa)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
-      .map(([k, v]) => ({ key: k, url: v.img_url }));
+      .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
 
+    // Bảng ma trận từ object .data đầu tiên không có img_url
     const graphJsonEntry = Object.entries(pa).find(
       ([, v]) => v && typeof v === "object" && v.data && typeof v.data === "object" && !("img_url" in v)
     );
     const graphJson = graphJsonEntry ? { key: graphJsonEntry[0], ...graphJsonEntry[1] } : null;
 
     return (
-      <div style={{ marginTop: "30px" }}>
-        <h3
-          style={{
-            marginBottom: "15px",
-            fontWeight: 700,
-            fontSize: "1.4rem",
-            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "0.5px",
-          }}
-        >{titleCase("Performance Analysis")}</h3>
+      <Block>
+        <SectionTitle accent={groupAccents.performance}>{titleCase("Performance Analysis")}</SectionTitle>
 
-        {cards.length > 0 && <MetricCards entries={cards} />}
+        {cards.length > 0 && <MetricCards entries={cards} accent={groupAccents.performance} />}
 
         {images.length > 0 && (
-          <div style={{ display: "flex", gap: "20px", marginBottom: "25px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "20px", marginBottom: "18px", flexWrap: "wrap" }}>
             {images.map((chart, idx) => (
-              <div key={idx} style={{ flex: "1 1 400px", textAlign: "center" }}>
-                <h4 style={{ marginBottom: "10px" }}>{titleCase(chart.key)}</h4>
+              <div
+                key={idx}
+                style={{
+                  flex: "1 1 400px",
+                  textAlign: "center",
+                  background: "rgba(255,255,255,0.06)",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  border: `1px solid ${groupAccents.performance}44`,
+                }}
+              >
+                <h4 style={{ marginBottom: "10px", color: groupAccents.performance, fontWeight: 700 }}>
+                  {titleCase(chart.key)}
+                </h4>
                 <img
                   src={chart.url}
                   alt={chart.key}
-                  style={{ maxWidth: "100%", maxHeight: "320px", objectFit: "contain" }}
+                  style={{ maxWidth: "100%", maxHeight: "320px", objectFit: "contain", borderRadius: "8px" }}
                 />
               </div>
             ))}
@@ -642,100 +663,49 @@ function GraphView() {
         )}
 
         {graphJson && graphJson.data && (
-          <div
-            style={{
-              height: "520px",
-              border: "1px solid rgba(255,255,255,0.2)",
-              marginBottom: "20px",
-            }}
-          >
-            <ForceGraph2D
-              width={800}
-              height={600}
-              graphData={{
-                nodes: Array.from(
-                  new Set(
-                    Object.keys(graphJson.data).flatMap((edgeStr) => {
-                      const [a, b] = parseEdgeTuple(edgeStr);
-                      return a && b ? [a, b] : [];
-                    })
-                  )
-                ).map((id) => ({ id })),
-                links: Object.entries(graphJson.data)
-                  .map(([edgeStr, val]) => {
-                    const [a, b] = parseEdgeTuple(edgeStr);
-                    if (!a || !b) return null;
-                    let label = "";
-                    if (Array.isArray(val) && val.length === 2 && typeof val[0] === "number") {
-                      label = `Mean: ${val[0].toFixed(2)}, Std: ${val[1].toFixed(2)}`;
-                    } else if (Array.isArray(val)) {
-                      label = val.join(", ");
-                    } else {
-                      label = String(val);
-                    }
-                    return { source: a, target: b, label };
-                  })
-                  .filter(Boolean),
-              }}
-              nodeRelSize={15}
-              nodeLabel="id"
-              nodeCanvasObject={(node, ctx, globalScale) => {
-                const r = 10;
-                ctx.fillStyle = "#87CEEB";
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
-                ctx.fill();
-                ctx.fillStyle = "white";
-                ctx.font = `${12 / globalScale}px Sans-Serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(node.id, node.x, node.y);
-              }}
-              linkWidth={2}
-              linkColor={() => "#A9A9A9"}
-              linkCanvasObject={(link, ctx, globalScale) => {
-                const midX = (link.source.x + link.target.x) / 2;
-                const midY = (link.source.y + link.target.y) / 2;
-                ctx.fillStyle = "white";
-                ctx.font = `${10 / globalScale}px Sans-Serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(link.label, midX, midY);
-              }}
-              d3AlphaDecay={1}
-            />
-          </div>
+          <EdgeMatrix
+            title={graphJson.key}
+            accent={groupAccents.performance}
+            edges={Object.entries(graphJson.data)
+              .map(([edgeStr, val]) => {
+                const [src, tgt] = parseEdgeTuple(edgeStr);
+                if (!src || !tgt) return null;
+                if (Array.isArray(val) && val.length === 2) {
+                  return [[src, tgt], `Mean: ${Number(val[0]).toFixed(2)} | Std: ${Number(val[1]).toFixed(2)}`];
+                }
+                return [[src, tgt], String(val)];
+              })
+              .filter(Boolean)}
+          />
         )}
 
         {pa.insights && (
           <div
             style={{
-              backgroundColor: "rgba(255,255,255,0.05)",
-              padding: "15px",
-              borderRadius: "8px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              color: "rgba(255,255,255,0.85)",
-              fontStyle: "italic",
+              marginTop: "14px",
+              background: `${groupAccents.performance}11`,
+              padding: "14px",
+              borderRadius: "12px",
+              border: `1px solid ${groupAccents.performance}55`,
+              color: "rgba(255,255,255,0.95)",
             }}
           >
-            {splitInsight(pa.insights)}
+            {splitInsight(pa.insights, groupAccents.performance)}
           </div>
         )}
-      </div>
+      </Block>
     );
   };
 
-  // ===== Group 4: Conformance Checking =====
+  /* ===== Group 4: Conformance Checking ===== */
   const renderConformanceChecking = () => {
     const cc = report.conformance_checking;
     if (!cc || typeof cc !== "object") return null;
 
     const { insights, ...rest } = cc;
 
-    // 1) Thẻ số: tất cả numeric field
     const cards = Object.entries(rest).filter(([, v]) => typeof v === "number");
 
-    // 2) Matrix & 3) Unwanted combo chart — nhận dạng KHÔNG hardcode key
     let matrixBlock = null;
     let unwantedBlock = null;
 
@@ -743,28 +713,20 @@ function GraphView() {
       if (v && Array.isArray(v.data)) {
         const data = v.data;
         if (!matrixBlock && isEdgeMatrixArray(data)) {
-          matrixBlock = <EdgeMatrix key={`mx-${k}`} title={k} edges={data} />;
+          matrixBlock = <EdgeMatrix key={`mx-${k}`} title={k} edges={data} accent={groupAccents.conformance} />;
         } else if (!unwantedBlock && isUnwantedStatArray(data)) {
-          unwantedBlock = <UnwantedComboChart key={`uw-${k}`} title={k} rows={data} />;
+          unwantedBlock = (
+            <UnwantedComboChart key={`uw-${k}`} title={k} rows={data} accent={groupAccents.conformance} />
+          );
         }
       }
     });
 
     return (
-      <div style={{ marginTop: "30px" }}>
-        <h3
-          style={{
-            marginBottom: "15px",
-            fontWeight: 700,
-            fontSize: "1.4rem",
-            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "0.5px",
-          }}
-        >{titleCase("Conformance Checking")}</h3>
+      <Block>
+        <SectionTitle accent={groupAccents.conformance}>{titleCase("Conformance Checking")}</SectionTitle>
 
-        {cards.length > 0 && <MetricCards entries={cards} />}
+        {cards.length > 0 && <MetricCards entries={cards} accent={groupAccents.conformance} />}
 
         {matrixBlock}
         {unwantedBlock}
@@ -772,94 +734,95 @@ function GraphView() {
         {insights && (
           <div
             style={{
-              background: "rgba(255,255,255,0.05)",
-              padding: "15px",
-              borderRadius: "8px",
-              marginTop: "20px",
-              fontStyle: "italic",
+              background: `${groupAccents.conformance}11`,
+              padding: "14px",
+              borderRadius: "12px",
+              marginTop: "16px",
+              border: `1px solid ${groupAccents.conformance}55`,
+              color: "rgba(255,255,255,0.95)",
             }}
           >
-            {splitInsight(insights)}
+            {splitInsight(insights, groupAccents.conformance)}
           </div>
         )}
-      </div>
+      </Block>
     );
   };
 
-  // ===== Group 5: Enhancement =====
+  /* ===== Group 5: Enhancement ===== */
   const renderEnhancement = () => {
     const en = report.enhancement;
     if (!en || typeof en !== "object") return null;
 
     return (
-      <div style={{ marginTop: "30px" }}>
-        <h3
-          style={{
-            marginBottom: "15px",
-            fontWeight: 700,
-            fontSize: "1.4rem",
-            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "0.5px",
-          }}
-        >{titleCase("Enhancement")}</h3>
+      <Block>
+        <SectionTitle accent={groupAccents.enhancement}>{titleCase("Enhancement")}</SectionTitle>
         {en.insights && (
           <div
             style={{
-              background: "rgba(255,255,255,0.05)",
-              padding: "15px",
-              borderRadius: "8px",
-              fontStyle: "italic",
+              background: `${groupAccents.enhancement}11`,
+              padding: "14px",
+              borderRadius: "12px",
+              border: `1px solid ${groupAccents.enhancement}55`,
+              color: "rgba(255,255,255,0.95)",
             }}
           >
-            {splitInsight(en.insights)}
+            {splitInsight(en.insights, groupAccents.enhancement)}
           </div>
         )}
-      </div>
+      </Block>
     );
   };
 
-  // ===== Main render =====
+  /* ===== Main render ===== */
   return (
-    <div style={{ padding: "20px", color: "#fff" }}>
+    <div
+      style={{
+        padding: "30px",
+        color: "#fff",
+        fontFamily:
+          "Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
+        background: "linear-gradient(135deg, #1e1e2f, #121212)",
+        minHeight: "100vh",
+      }}
+    >
       {report.report_title && (
-        <h2 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "20px" }}>
+        <h2
+          style={{
+            fontSize: "2.2rem",
+            fontWeight: 900,
+            marginBottom: "20px",
+            background: "linear-gradient(90deg, #F7666F, #406AFF)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
           {titleCase(report.report_title)}
         </h2>
       )}
 
       {report.description && (
-        <div
-          style={{
-            backgroundColor: "rgba(255,255,255,0.05)",
-            padding: "15px",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            marginBottom: "20px",
-            lineHeight: "1.6",
-          }}
-        >
-          {report.description
+        <Block>
+          {String(report.description)
             .split("\n")
             .filter((line) => line.trim() !== "")
             .map((line, idx) => (
-              <p key={idx} style={{ marginBottom: "10px", color: "rgba(255,255,255,0.85)" }}>
+              <p key={idx} style={{ marginBottom: "10px", color: "#eee", lineHeight: 1.7 }}>
                 {line}
               </p>
             ))}
-        </div>
+        </Block>
       )}
 
       {report.dataset_overview?.date_range && (
-        <>
-          <p style={{ marginBottom: "5px" }}>
+        <Block>
+          <p style={{ marginBottom: "6px", color: "#90caf9" }}>
             <strong>Start:</strong> {report.dataset_overview.date_range.start_time}
           </p>
-          <p style={{ marginBottom: "20px" }}>
+          <p style={{ marginBottom: "0", color: "#ffcc80" }}>
             <strong>End:</strong> {report.dataset_overview.date_range.end_time}
           </p>
-        </>
+        </Block>
       )}
 
       {renderBasicStatistics()}
