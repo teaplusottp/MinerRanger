@@ -1,6 +1,7 @@
-import React from 'react'
+﻿import React from 'react'
 import { Link } from 'react-router-dom'
 import styles from './Home.module.scss'
+import heroIllustration from '../../../../design/Hero-Wrapper__image--center.png'
 
 const Home = () => {
   return (
@@ -47,9 +48,12 @@ const Home = () => {
           </Link>
         </div>
         <div className={styles.heroArt}>
-          <div className={styles.artPlaceholder}>
-            TODO: Replace with final hero illustration
-          </div>
+          <img
+            src={heroIllustration}
+            alt="Illustration of collaborative product teams at work"
+            className={styles.heroImage}
+            loading="lazy"
+          />
         </div>
       </main>
     </div>
@@ -57,3 +61,5 @@ const Home = () => {
 }
 
 export default Home
+
+

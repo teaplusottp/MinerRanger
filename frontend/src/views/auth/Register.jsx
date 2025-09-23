@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from './AuthLayout'
 import styles from './AuthLayout.module.scss'
+import authIllustration from '../../../../design/Hero-Wrapper__image--center.png'
 import { extractErrorMessage, registerUser } from '../../services/authService'
 
-const AUTH_IMAGE_SRC = null // TODO: supply final asset that matches provided mockup
+const AUTH_IMAGE_SRC = authIllustration
 const REGISTER_REDIRECT_DELAY = 800
 
 const Register = () => {
@@ -157,3 +158,4 @@ const Register = () => {
 }
 
 export default Register
+

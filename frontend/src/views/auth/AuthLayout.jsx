@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import PropTypes from 'prop-types'
 import styles from './AuthLayout.module.scss'
 
@@ -8,9 +8,15 @@ const AuthLayout = ({
   children,
   footerSlot,
   imageSrc,
-  imageAlt = 'Decorative plant background from design reference',
+  imageAlt = 'Illustration of collaborative product teams working together',
 }) => {
-  const visualStyle = imageSrc ? { backgroundImage: `url(${imageSrc})` } : undefined
+  const visualContent = imageSrc ? (
+    <img src={imageSrc} alt="" className={styles.visualImage} loading="lazy" />
+  ) : (
+    <span className={styles.visualTodo}>
+      TODO: Replace with final art asset to match design
+    </span>
+  )
 
   return (
     <div className={styles.page}>
@@ -24,13 +30,7 @@ const AuthLayout = ({
           {footerSlot ? <div className={styles.footerSlot}>{footerSlot}</div> : null}
         </section>
         <aside className={styles.visualPanel} aria-hidden="true">
-          <div className={styles.visual} style={visualStyle}>
-            {imageSrc ? null : (
-              <span className={styles.visualTodo}>
-                TODO: Replace with final art asset to match design
-              </span>
-            )}
-          </div>
+          <div className={styles.visual}>{visualContent}</div>
           <span className={styles.srOnly}>{imageAlt}</span>
         </aside>
       </div>
@@ -48,3 +48,5 @@ AuthLayout.propTypes = {
 }
 
 export default AuthLayout
+
+

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from './AuthLayout'
 import styles from './AuthLayout.module.scss'
+import authIllustration from '../../../../design/Hero-Wrapper__image--center.png'
 import { extractErrorMessage, loginUser } from '../../services/authService'
 
-const AUTH_IMAGE_SRC = null // TODO: supply final asset that matches provided mockup
+const AUTH_IMAGE_SRC = authIllustration
 const REMEMBER_EMAIL_KEY = 'minerranger.rememberEmail'
 const AUTH_TOKEN_KEY = 'minerranger.authToken'
 const AUTH_USER_KEY = 'minerranger.user'
@@ -177,3 +178,4 @@ const Login = () => {
 }
 
 export default Login
+
