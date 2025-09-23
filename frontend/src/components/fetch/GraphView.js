@@ -2,11 +2,10 @@ import React, { useEffect, useState, useMemo } from "react";
 import { CSpinner } from "@coreui/react";
 import ForceGraph2D from "react-force-graph-2d";
 
-// ================== Helpers ==================
 const splitInsight = (insight) =>
   insight
     ? insight
-        .split(/(?<=\.)\s+/)
+        .split(/(?<=\.)\s+|(?<=\.)\n+/)
         .filter((line) => line.trim() !== "")
         .map((line, idx) => (
           <div key={idx} style={{ marginBottom: "4px" }}>
@@ -60,22 +59,35 @@ const MetricCards = ({ entries }) => {
   return (
     <div style={{ display: "flex", gap: "15px", marginBottom: "20px", flexWrap: "wrap" }}>
       {entries.map(([key, value], idx) => (
-        <div
-          key={idx}
-          style={{
-            flex: "1 1 150px",
-            background: "rgba(255,255,255,0.1)",
-            padding: "15px",
-            borderRadius: "8px",
-            textAlign: "center",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-          }}
-        >
-          <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)" }}>
-            {titleCase(key)}
-          </div>
-          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{value}</div>
+      // MetricCards
+      <div
+        key={idx}
+        style={{
+          flex: "1 1 150px",
+          background: "linear-gradient(135deg, rgba(63,81,181,0.8), rgba(33,150,243,0.6))",
+          padding: "18px",
+          borderRadius: "12px",
+          textAlign: "center",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-4px)";
+          e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.25)";
+        }}
+      >
+        <div style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.8)" }}>
+          {titleCase(key)}
         </div>
+        <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff" }}>
+          {value}
+        </div>
+      </div>
+
       ))}
     </div>
   );
@@ -118,7 +130,7 @@ const HorizontalBars = ({ chartKey, chart }) => {
                 style={{
                   width: `${pct}%`,
                   height: "100%",
-                  background: "#4fc3f7",
+                  background: "linear-gradient(90deg, #42a5f5, #1e88e5)",
                   borderRadius: "4px",
                   display: "flex",
                   alignItems: "center",
@@ -126,10 +138,12 @@ const HorizontalBars = ({ chartKey, chart }) => {
                   paddingLeft: "8px",
                   color: "#fff",
                   fontWeight: 600,
+                  boxShadow: "inset 0 0 4px rgba(0,0,0,0.3)",
                 }}
               >
                 {val}
               </div>
+
             </div>
           </div>
         );
@@ -411,7 +425,17 @@ function GraphView() {
 
     return (
       <div style={{ marginTop: "30px" }}>
-        <h3 style={{ marginBottom: "15px", fontWeight: 600 }}>{titleCase("Basic Statistics")}</h3>
+        <h3
+          style={{
+            marginBottom: "15px",
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.5px",
+          }}
+        >{titleCase("Basic Statistics")}</h3>
 
         {cards.length > 0 && <MetricCards entries={cards} />}
 
@@ -479,7 +503,17 @@ function GraphView() {
 
     return (
       <div style={{ marginTop: "30px" }}>
-        <h3 style={{ marginBottom: "15px", fontWeight: 600 }}>{titleCase("Process Discovery")}</h3>
+        <h3
+          style={{
+            marginBottom: "15px",
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.5px",
+          }}
+        >{titleCase("Process Discovery")}</h3>
 
         {cards.length > 0 && <MetricCards entries={cards} />}
 
@@ -578,7 +612,17 @@ function GraphView() {
 
     return (
       <div style={{ marginTop: "30px" }}>
-        <h3 style={{ marginBottom: "15px", fontWeight: 600 }}>{titleCase("Performance Analysis")}</h3>
+        <h3
+          style={{
+            marginBottom: "15px",
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.5px",
+          }}
+        >{titleCase("Performance Analysis")}</h3>
 
         {cards.length > 0 && <MetricCards entries={cards} />}
 
@@ -708,7 +752,17 @@ function GraphView() {
 
     return (
       <div style={{ marginTop: "30px" }}>
-        <h3 style={{ marginBottom: "15px", fontWeight: 600 }}>{titleCase("Conformance Checking")}</h3>
+        <h3
+          style={{
+            marginBottom: "15px",
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.5px",
+          }}
+        >{titleCase("Conformance Checking")}</h3>
 
         {cards.length > 0 && <MetricCards entries={cards} />}
 
@@ -739,7 +793,17 @@ function GraphView() {
 
     return (
       <div style={{ marginTop: "30px" }}>
-        <h3 style={{ marginBottom: "15px", fontWeight: 600 }}>{titleCase("Enhancement")}</h3>
+        <h3
+          style={{
+            marginBottom: "15px",
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            background: "linear-gradient(90deg, #00c6ff, #0072ff)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "0.5px",
+          }}
+        >{titleCase("Enhancement")}</h3>
         {en.insights && (
           <div
             style={{

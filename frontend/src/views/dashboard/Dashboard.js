@@ -10,7 +10,6 @@ const Dashboard = () => {
   return (
     <>
       <CCard className="mb-4">
-        <CCardHeader>Graph Visualization</CCardHeader>
         <CCardBody>
           <GraphView />
         </CCardBody>
