@@ -37,15 +37,15 @@ const AppHeader = ({ onOpenChat }) => {
   const [visible, setVisible] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [textValue, setTextValue] = useState("")
+  const [logMessages, setLogMessages] = useState([])   // 👈 log state
+  const logBoxRef = useRef(null)
 
   // state cho sidebar database
   const [showDbSidebar, setShowDbSidebar] = useState(false)
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!isUserMenuOpen) {
-        return
-      }
+      if (!isUserMenuOpen) return
       const target = event.target
       const wrapper = userMenuRef.current
       if (wrapper && !wrapper.contains(target)) {
@@ -61,6 +61,13 @@ const AppHeader = ({ onOpenChat }) => {
       document.removeEventListener('touchstart', handleClickOutside)
     }
   }, [isUserMenuOpen])
+
+  // auto scroll xuống cuối khi có log mới
+  useEffect(() => {
+    if (logBoxRef.current) {
+      logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
+    }
+  }, [logMessages])
 
   const fetchDatabases = async () => {
     try {
@@ -92,30 +99,50 @@ const AppHeader = ({ onOpenChat }) => {
     }
 
     setLoading(true)
+    setLogMessages([]) // reset log cũ
 
     try {
+      // 1. Gửi file trước
       const res = await fetch("http://127.0.0.1:8000/upload", {
         method: "POST",
         body: formData,
       })
       const data = await res.json()
-      if (res.ok) {
-        alert("✅ Upload thành công: " + data.filename)
-        setVisible(false)
-        setSelectedFile(null)
-        setTextValue("")
-      } else {
+
+      if (!res.ok) {
         alert("❌ Upload lỗi: " + (data.error || "Không rõ"))
+        setLoading(false)
+        return
+      }
+
+      // 2. Nếu upload ok thì mở WS nhận log
+      const folder = data.folder
+      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/upload?folder=${folder}`)
+
+      ws.onopen = () => {
+        setLogMessages((prev) => [...prev, "🔗 WebSocket connected..."])
+      }
+
+      ws.onmessage = (event) => {
+        setLogMessages((prev) => [...prev, event.data])
+      }
+
+      ws.onerror = (err) => {
+        console.error("WS error:", err)
+        setLogMessages((prev) => [...prev, "❌ WebSocket error"])
+      }
+
+      ws.onclose = () => {
+        setLogMessages((prev) => [...prev, "🔌 WebSocket closed"])
+        setLoading(false)
       }
     } catch (err) {
       console.error("Lỗi upload:", err)
       alert("❌ Không kết nối được server")
-    } finally {
       setLoading(false)
     }
   }
 
-  // khi bấm Dashboard: fetch database và mở sidebar
   const handleDashboardClick = async (e) => {
     e.preventDefault()
     setIsUserMenuOpen(false)
@@ -124,25 +151,18 @@ const AppHeader = ({ onOpenChat }) => {
     setShowDbSidebar(true)
   }
 
-  // khi đóng sidebar thì reset lại trạng thái
   const handleCloseSidebar = () => {
-
     setIsUserMenuOpen(false)
     setShowDbSidebar(false)
     setLoaded(false)
   }
 
   return (
-
     <CHeader position="sticky" className="mb-4">
       <CContainer fluid className="d-flex align-items-center justify-content-between">
         <CHeaderNav className="d-none d-md-flex align-items-center gap-4">
           <CNavItem>
-            <CButton
-              type="button"
-              className="pill-button"
-              onClick={handleDashboardClick}
-            >
+            <CButton type="button" className="pill-button" onClick={handleDashboardClick}>
               Databases
             </CButton>
           </CNavItem>
@@ -190,37 +210,13 @@ const AppHeader = ({ onOpenChat }) => {
               </CNavLink>
               {isUserMenuOpen ? (
                 <div className="users-menu" role="menu" aria-label="User menu">
-                  <button
-                    type="button"
-                    className="users-menu__item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsUserMenuOpen(false)
-                      navigate('/user')
-                    }}
-                  >
+                  <button type="button" className="users-menu__item" onClick={() => { setIsUserMenuOpen(false); navigate('/user') }}>
                     Profile
                   </button>
-                  <button
-                    type="button"
-                    className="users-menu__item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsUserMenuOpen(false)
-                      navigate('/settings')
-                    }}
-                  >
+                  <button type="button" className="users-menu__item" onClick={() => { setIsUserMenuOpen(false); navigate('/settings') }}>
                     Account settings
                   </button>
-                  <button
-                    type="button"
-                    className="users-menu__item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsUserMenuOpen(false)
-                      navigate('/home')
-                    }}
-                  >
+                  <button type="button" className="users-menu__item" onClick={() => { setIsUserMenuOpen(false); navigate('/home') }}>
                     Log out
                   </button>
                 </div>
@@ -234,13 +230,38 @@ const AppHeader = ({ onOpenChat }) => {
           <CModalHeader closeButton>Upload File & Input Text</CModalHeader>
           <CModalBody>
             {loading ? (
-              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "150px" }}>
-                <CSpinner color="primary" />
-                <span className="ms-2">Đang xử lý file, vui lòng đợi...</span>
+              <div className="d-flex flex-column" style={{ minHeight: "150px" }}>
+                <div className="d-flex align-items-center mb-2">
+                  <CSpinner color="primary" />
+                  <span className="ms-2">Đang xử lý file, vui lòng đợi...</span>
+                </div>
+
+                {/* Ô log có nội dung */}
+                <div
+                  ref={logBoxRef}
+                  style={{
+                    background: "#111",
+                    color: "#0f0",
+                    fontFamily: "monospace",
+                    fontSize: "14px",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    height: "200px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {logMessages.map((msg, idx) => (
+                    <div key={idx}>{msg}</div>
+                  ))}
+                </div>
               </div>
             ) : (
               <>
-                <CButton color="secondary" variant="outline" onClick={() => fileInputRef.current.click()}>
+                <CButton
+                  color="secondary"
+                  variant="outline"
+                  onClick={() => fileInputRef.current.click()}
+                >
                   Choose File
                 </CButton>
                 <input
@@ -269,16 +290,10 @@ const AppHeader = ({ onOpenChat }) => {
             </CButton>
           </CModalFooter>
         </CModal>
-
       </CContainer>
 
-      {/* Sidebar (offcanvas) hiển thị danh sách databases */}
-      <COffcanvas
-        placement="start"
-        visible={showDbSidebar}
-        onClose={handleCloseSidebar}
-        onHide={handleCloseSidebar}   // 👈 thêm dòng này
-      >
+      {/* Sidebar databases */}
+      <COffcanvas placement="start" visible={showDbSidebar} onClose={handleCloseSidebar} onHide={handleCloseSidebar}>
         <COffcanvasHeader>
           <COffcanvasTitle>Databases</COffcanvasTitle>
         </COffcanvasHeader>
@@ -317,20 +332,3 @@ const AppHeader = ({ onOpenChat }) => {
 }
 
 export default AppHeader
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

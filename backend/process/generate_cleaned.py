@@ -235,7 +235,7 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
 
     return df_logs
 
-def clean_and_save_logs(folder_path, GEMINI_API_KEY=None):
+async def clean_and_save_logs(folder_path, GEMINI_API_KEY=None):
     files = os.listdir(folder_path)
 
     log_file = next((f for f in files if f.endswith('.xes') or f.endswith('.xes.gz')), None)

@@ -619,7 +619,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     return True
 
-def gen_report(folder_path,  GEMINI_API_KEY):
+async def gen_report(folder_path,  GEMINI_API_KEY):
     files = os.listdir(folder_path)
     log_file = next((f for f in files if f.endswith('_cleaned.xes')), None)
     desc_file = next((f for f in files if f.endswith('.txt')), None)

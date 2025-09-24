@@ -12,13 +12,15 @@ import os
 import json
 from pydantic import BaseModel
 
-
+import sys
+import asyncio
+from fastapi import FastAPI, WebSocket
 
 # Import các hàm xử lý riêng
 from process.generate_cleaned import clean_and_save_logs 
 from process.generate_json import gen_report
 from process.__init__ import *   # lấy GEMINI_API_KEY,...
-
+from process.WebSocketLogger import WebSocketLogger
 
 # ===================== App config =====================
 app = FastAPI()
@@ -102,67 +104,68 @@ def get_stats(db):
     return JSONResponse(content=data)
 
 
+
+# ========== Endpoint POST upload ==========
 @app.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    note: str = Form(None)   # text nhập từ frontend
+    note: str = Form(None)
 ):
-    """Upload file .xes/.xes.gz và xử lý"""
-    # Validate file
     if not (file.filename.endswith(".xes") or file.filename.endswith(".xes.gz")):
         return JSONResponse(
             status_code=400, 
             content={"error": "Chỉ chấp nhận file .xes hoặc .xes.gz"}
         )
 
-    # Tạo folder theo tên file
     folder_name = get_folder_name(file.filename)
     save_dir = os.path.join(UPLOAD_FOLDER, folder_name)
     os.makedirs(save_dir, exist_ok=True)
 
-    # Lưu file gốc
     save_path = os.path.join(save_dir, file.filename)
     with open(save_path, "wb") as f:
         f.write(await file.read())
 
-    # Ghi note nếu có
     if note:
-        readme_path = os.path.join(save_dir, "README.txt")
-        with open(readme_path, "w", encoding="utf-8") as f:
+        with open(os.path.join(save_dir, "README.txt"), "w", encoding="utf-8") as f:
             f.write(note)
 
-    # Xử lý file: clean logs + gen report
-    try:
-        generated_file = clean_and_save_logs(
-            folder_path=os.path.join(UPLOAD_FOLDER, folder_name) + "/",
-            GEMINI_API_KEY=GEMINI_API_KEY
-        )
-    except Exception as e:
-        return JSONResponse(
-            status_code=500, 
-            content={"error": f"Lỗi khi gen clean event logs: {str(e)}"}
-        )
-    
-    try:
-        generated_report = gen_report(
-            folder_path=os.path.join(UPLOAD_FOLDER, folder_name) + "/",
-            GEMINI_API_KEY=GEMINI_API_KEY
-        )
-    except Exception as e:
-        return JSONResponse(
-            status_code=500, 
-            content={"error": f"Lỗi khi gen report file: {str(e)}"}
-        )
-
     return {
-        "message": "✅ Upload + Gen thành công",
+        "message": "✅ Upload thành công",
         "filename": file.filename,
         "folder": folder_name,
-        "note": note or "",
-        "generated_file": generated_file, 
-        "generate_report": generated_report
+        "note": note or ""
     }
 
+# ========== Endpoint WebSocket stream log ==========
+@app.websocket("/ws/upload")
+async def ws_upload(ws: WebSocket):
+    await ws.accept()
+
+    queue = asyncio.Queue()
+    old_stdout = sys.stdout
+    sys.stdout = WebSocketLogger(queue)
+
+    async def sender():
+        while True:
+            msg = await queue.get()
+            await ws.send_text(msg)
+
+    sender_task = asyncio.create_task(sender())
+    try:
+        # Ở đây bạn có thể nhận folder_name từ query string / message đầu
+        folder_name = "demo_folder"  
+        folder_path = os.path.join(UPLOAD_FOLDER, folder_name) + "/"
+
+        generated_file = clean_and_save_logs(folder_path, GEMINI_API_KEY)
+        generated_report = gen_report(folder_path, GEMINI_API_KEY)
+
+        await ws.send_text(f"✅ Done: {generated_file}, {generated_report}")
+    except Exception as e:
+        await ws.send_text(f"❌ Error: {str(e)}")
+    finally:
+        sys.stdout = old_stdout
+        sender_task.cancel()
+        await ws.close()
 
 @app.get("/api/sidebar")
 def get_sidebar():
