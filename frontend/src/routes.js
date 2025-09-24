@@ -1,4 +1,5 @@
 import React from 'react'
+import PrivateRoute from './components/PrivateRoute'
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
 //const Dashboard = React.lazy(() => import('./views/pages/origin/origin'))  
@@ -57,9 +58,15 @@ const Toasts = React.lazy(() => import('./views/notifications/toasts/Toasts'))
 
 const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 
+const DashboardRoute = () => (
+  <PrivateRoute>
+    <Dashboard />
+  </PrivateRoute>
+)
+
 const routes = [
   { path: '/', exact: true, name: 'Home' },
-  { path: '/dashboard', name: 'Dashboard', element: Dashboard },
+  { path: '/dashboard', name: 'Dashboard', element: DashboardRoute },
   { path: '/theme', name: 'Theme', element: Colors, exact: true },
   { path: '/theme/colors', name: 'Colors', element: Colors },
   { path: '/theme/typography', name: 'Typography', element: Typography },
@@ -110,3 +117,4 @@ const routes = [
 ]
 
 export default routes
+

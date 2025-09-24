@@ -60,6 +60,24 @@ router.get("/me", protect, async (req, res) => {
   res.status(200).json(req.user);
 });
 
+// Dashboard
+router.get("/dashboard", protect, async (req, res) => {
+  const safeUser = req.user
+    ? {
+        id: req.user._id,
+        username: req.user.username,
+        email: req.user.email,
+      }
+    : null;
+
+  res.status(200).json({
+    user: safeUser,
+    message: safeUser?.username
+      ? `Welcome back, ${safeUser.username}!`
+      : "Welcome to your dashboard!",
+  });
+});
+
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
