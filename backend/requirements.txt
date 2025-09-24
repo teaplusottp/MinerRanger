@@ -1,5 +1,12 @@
 fastapi
-uvicorn
-python-multipart
+google-generativeai
 graphviz
+matplotlib
+numpy
+openai
+pandas
+pm4py
+pydantic
+python-multipart
+seaborn
 uvicorn
