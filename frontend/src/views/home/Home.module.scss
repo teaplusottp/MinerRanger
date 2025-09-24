@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 $page-bg: #ffffff;
 $text-primary: #1a2230; // approximated from design gray-900
@@ -182,19 +182,11 @@ $nav-shadow: 0px 18px 40px rgba(26, 34, 48, 0.06);
   align-items: center;
 }
 
-.artPlaceholder {
+.heroImage {
   width: min(520px, 100%);
-  aspect-ratio: 16 / 13;
-  border-radius: 32px;
-  background: linear-gradient(135deg, rgba(63, 105, 255, 0.14) 0%, rgba(247, 102, 110, 0.16) 100%);
-  border: 1px dashed rgba(63, 105, 255, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: rgba(26, 34, 48, 0.6);
-  font-weight: 500;
-  padding: 24px;
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 @media (max-width: 768px) {
@@ -222,3 +214,4 @@ $nav-shadow: 0px 18px 40px rgba(26, 34, 48, 0.06);
     font-size: clamp(36px, 7vw, 48px);
   }
 }
+

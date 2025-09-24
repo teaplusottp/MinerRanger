@@ -1,4 +1,4 @@
-.page {
+﻿.page {
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -212,6 +212,16 @@
   padding: 32px;
 }
 
+.visualImage {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  display: block;
+  border-radius: 32px;
+  margin: 0 auto;
+  box-shadow: 0 28px 48px rgba(12, 42, 146, 0.1);
+}
+
 .visualTodo {
   background-color: rgba(255, 255, 255, 0.72);
   color: #0c2a92;
@@ -284,3 +294,4 @@
     font-size: 15px;
   }
 }
+
