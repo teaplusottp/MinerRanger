@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { CSpinner } from "@coreui/react";
-
+import { useDb } from '../../context/DbContext';
 /* ======================= Helpers & Styling ======================= */
 
 // Ghép URL ảnh (nếu server trả filename) → /static/<file>
@@ -461,13 +461,20 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
 
 function GraphView() {
   const [report, setReport] = useState(null);
+ const { selectedDb } = useDb()
 
   useEffect(() => {
-    fetch("http://localhost:8000/graph")
+    if (!selectedDb) return   // chưa chọn DB thì bỏ qua
+setReport(null);
+    fetch(`http://localhost:8000/graph?db=${selectedDb}`)
       .then((res) => res.json())
       .then((data) => setReport(data))
-      .catch((err) => console.error("Error fetching report:", err));
-  }, []);
+      .catch((err) => console.error("Error fetching report:", err))
+  }, [selectedDb])           
+  
+  if (!selectedDb) {
+    return <div style={{ padding: 20 }}>⚠️ Hãy chọn một database để xem báo cáo</div>
+  }
 
   if (!report) {
     return (

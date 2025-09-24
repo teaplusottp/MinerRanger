@@ -72,12 +72,17 @@ def get_databases():
     return {"databases": folders}
 
 
+
 @app.get("/graph")
-async def get_graph():
-    report_path = os.path.join(os.path.dirname(__file__), "demo", "report.json")
+async def get_graph(db: str = Query("output_short", description="Tên database")):
+    report_path = os.path.join(BASE_DIR, "uploads", db, "report.json")
+    if not os.path.exists(report_path):
+        return JSONResponse(content={"error": f"Database {db} not found"}, status_code=404)
+
     with open(report_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
+    # Chỉnh url ảnh để frontend load được
     if "performance_analysis" in data:
         for key, val in data["performance_analysis"].items():
             if isinstance(val, dict) and "img_url" in val:
@@ -85,6 +90,7 @@ async def get_graph():
                 val["img_url"] = f"http://localhost:8000/static/{filename}"
 
     return JSONResponse(content=data)
+
 
 
 @app.get("/stats")
