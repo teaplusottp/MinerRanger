@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 
 const ChatbotSidebar = ({ isOpen, onClose }) => {
+  const sidebarRef = useRef(null)
   const [message, setMessage] = useState("")
   const [chat, setChat] = useState([])
   const [chatList, setChatList] = useState([])
   const [currentChatId, setCurrentChatId] = useState(null)
 
-  // load danh sách chat khi mở
+  const handleBackdropPointerDown = (event) => {
+    const sidebarEl = sidebarRef.current
+    if (!sidebarEl || sidebarEl.contains(event.target)) {
+      return
+    }
+    onClose?.()
+  }
+
+  // load danh sach chat khi mo
   useEffect(() => {
     if (isOpen) {
       fetch("http://localhost:8000/chats")
@@ -68,172 +77,188 @@ const ChatbotSidebar = ({ isOpen, onClose }) => {
 
   return (
     <div
+      role="presentation"
+      aria-hidden={!isOpen}
+      onMouseDown={handleBackdropPointerDown}
+      onTouchStart={handleBackdropPointerDown}
       style={{
         position: "fixed",
-        top: 0,
-        right: isOpen ? 0 : "-340px",
-        width: "340px",
-        height: "100vh",
-        background: "#1e1e1e",
-        borderLeft: "1px solid #333",
-        boxShadow: "-2px 0 8px rgba(0,0,0,0.5)",
-        display: "flex",
-        flexDirection: "column",
-        transition: "right 0.3s ease",
-        zIndex: 1050,
-        color: "#fff",
+        inset: 0,
+        background: isOpen ? "rgba(0, 0, 0, 0.2)" : "transparent",
+        transition: "background 0.3s ease",
+        pointerEvents: isOpen ? "auto" : "none",
+        zIndex: 1049,
       }}
     >
-      {/* Header */}
       <div
+        ref={sidebarRef}
         style={{
-          padding: "12px",
-          borderBottom: "1px solid #333",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          fontWeight: "bold",
-        }}
-      >
-        🤖 Chatbot
-        <button
-          onClick={onClose}
-          style={{
-            background: "#c0392b",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            padding: "2px 8px",
-            cursor: "pointer",
-          }}
-        >
-          X
-        </button>
-      </div>
-
-      {/* Dropdown chọn chat */}
-      <div
-        style={{
-          display: "flex",
-          gap: "6px",
-          padding: "10px",
-          borderBottom: "1px solid #333",
-        }}
-      >
-        <select
-          value={currentChatId || ""}
-          onChange={(e) => {
-            setCurrentChatId(Number(e.target.value))
-            loadChatHistory(Number(e.target.value))
-          }}
-          style={{
-            flex: 1,
-            padding: "6px",
-            borderRadius: "4px",
-            background: "#2c2c2c",
-            color: "#fff",
-            border: "1px solid #555",
-          }}
-        >
-          {chatList.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={createNewChat}
-          style={{
-            background: "#27ae60",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            padding: "0 10px",
-            cursor: "pointer",
-          }}
-        >
-          +
-        </button>
-        <button
-          onClick={() => deleteChat(currentChatId)}
-          style={{
-            background: "#e74c3c",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            padding: "0 10px",
-            cursor: "pointer",
-          }}
-        >
-          🗑
-        </button>
-      </div>
-
-      {/* Body tin nhắn */}
-      <div
-        style={{
-          flex: 1,
-          padding: "10px",
-          overflowY: "auto",
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: "340px",
+          height: "100vh",
+          background: "#1e1e1e",
+          borderLeft: "1px solid #333",
+          boxShadow: "-2px 0 8px rgba(0,0,0,0.5)",
           display: "flex",
           flexDirection: "column",
+          transition: "transform 0.3s ease",
+          transform: isOpen ? "translateX(0)" : "translateX(100%)",
+          color: "#fff",
         }}
       >
-        {chat.map((c, i) => (
-          <div
-            key={i}
-            style={{
-              alignSelf: c.role === "bot" ? "flex-start" : "flex-end",
-              background: c.role === "bot" ? "#2c2c2c" : "#3498db",
-              color: "#fff",
-              padding: "6px 10px",
-              borderRadius: "6px",
-              marginBottom: "8px",
-              maxWidth: "80%",
-            }}
-          >
-            {c.text}
-          </div>
-        ))}
-      </div>
-
-      {/* Input + send */}
-      <div
-        style={{
-          padding: "10px",
-          borderTop: "1px solid #333",
-          display: "flex",
-          gap: "6px",
-        }}
-      >
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Nhập tin nhắn..."
+        {/* Header */}
+        <div
           style={{
-            flex: 1,
-            padding: "8px",
-            borderRadius: "4px",
-            border: "1px solid #555",
-            background: "#2c2c2c",
-            color: "#fff",
-          }}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-        <button
-          onClick={sendMessage}
-          style={{
-            background: "#2980b9",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            padding: "0 12px",
-            cursor: "pointer",
+            padding: "12px",
+            borderBottom: "1px solid #333",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontWeight: "bold",
           }}
         >
-          Gửi
-        </button>
+          AI Chatbot
+          <button
+            onClick={onClose}
+            style={{
+              background: "#c0392b",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "2px 8px",
+              cursor: "pointer",
+            }}
+          >
+            X
+          </button>
+        </div>
+
+        {/* Dropdown chon chat */}
+        <div
+          style={{
+            display: "flex",
+            gap: "6px",
+            padding: "10px",
+            borderBottom: "1px solid #333",
+          }}
+        >
+          <select
+            value={currentChatId || ""}
+            onChange={(e) => {
+              setCurrentChatId(Number(e.target.value))
+              loadChatHistory(Number(e.target.value))
+            }}
+            style={{
+              flex: 1,
+              padding: "6px",
+              borderRadius: "4px",
+              background: "#2c2c2c",
+              color: "#fff",
+              border: "1px solid #555",
+            }}
+          >
+            {chatList.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={createNewChat}
+            style={{
+              background: "#27ae60",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "0 10px",
+              cursor: "pointer",
+            }}
+          >
+            +
+          </button>
+          <button
+            onClick={() => deleteChat(currentChatId)}
+            style={{
+              background: "#e74c3c",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "0 10px",
+              cursor: "pointer",
+            }}
+          >
+            Del
+          </button>
+        </div>
+
+        {/* Body tin nhan */}
+        <div
+          style={{
+            flex: 1,
+            padding: "10px",
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {chat.map((c, i) => (
+            <div
+              key={i}
+              style={{
+                alignSelf: c.role === "bot" ? "flex-start" : "flex-end",
+                background: c.role === "bot" ? "#2c2c2c" : "#3498db",
+                color: "#fff",
+                padding: "6px 10px",
+                borderRadius: "6px",
+                marginBottom: "8px",
+                maxWidth: "80%",
+              }}
+            >
+              {c.text}
+            </div>
+          ))}
+        </div>
+
+        {/* Input + send */}
+        <div
+          style={{
+            padding: "10px",
+            borderTop: "1px solid #333",
+            display: "flex",
+            gap: "6px",
+          }}
+        >
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Nhap tin nhan..."
+            style={{
+              flex: 1,
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #555",
+              background: "#2c2c2c",
+              color: "#fff",
+            }}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          />
+          <button
+            onClick={sendMessage}
+            style={{
+              background: "#2980b9",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "0 12px",
+              cursor: "pointer",
+            }}
+          >
+            Gui
+          </button>
+        </div>
       </div>
     </div>
   )

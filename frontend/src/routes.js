@@ -24,6 +24,8 @@ const Tooltips = React.lazy(() => import('./views/base/tooltips/Tooltips'))
 
 //const Origin = React.lazy(() => import('./views/pages/origin/origin'))
 const Chatbot = React.lazy(() => import('./views/pages/chatbot/Chatbot'))
+const UserPage = React.lazy(() => import('./views/pages/user/User'))
+const SettingsPage = React.lazy(() => import('./views/pages/settings/Settings'))
 
 // Buttons
 const Buttons = React.lazy(() => import('./views/buttons/buttons/Buttons'))
@@ -102,6 +104,8 @@ const routes = [
   { path: '/notifications/toasts', name: 'Toasts', element: Toasts },
   { path: '/widgets', name: 'Widgets', element: Widgets },
    { path: '/origin', name: 'Origin', element: Dashboard},
+  { path: '/user', name: 'User', element: UserPage },
+  { path: '/settings', name: 'Settings', element: SettingsPage },
   { path: '/chatbot', name: 'Chatbot', element: Chatbot },
 ]
 

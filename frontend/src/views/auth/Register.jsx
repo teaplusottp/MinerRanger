@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from './AuthLayout'
 import styles from './AuthLayout.module.scss'
+import googleIcon from '../../assets/images/icons-google.png'
+import appleIcon from '../../assets/images/icons-apple.png'
 import authIllustration from '../../assets/images/team-collaboration-hero.png'
 import { extractErrorMessage, registerUser } from '../../services/authService'
 
@@ -68,12 +70,12 @@ const Register = () => {
       </div>
       <div className={styles.socialRow}>
         <button type="button" className={styles.socialButton} onClick={handleProviderRedirect}>
-          <span className={styles.socialIcon}>TODO</span>
-          Sign in with Google
+          <img src={googleIcon} alt="Google" className={styles.socialIcon} />
+          Sign up with Google
         </button>
         <button type="button" className={styles.socialButton} onClick={handleProviderRedirect}>
-          <span className={styles.socialIcon}>TODO</span>
-          Sign in with Apple
+          <img src={appleIcon} alt="Apple" className={styles.socialIcon} />
+          Sign up with Apple
         </button>
       </div>
       <p className={styles.metaRow}>

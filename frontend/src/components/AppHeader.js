@@ -1,5 +1,4 @@
-// ...existing code...
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   CHeader,
   CContainer,
@@ -21,14 +20,17 @@ import {
   CListGroupItem,
 } from '@coreui/react'
 import { useDb } from '/src/context/DbContext.js'
-//import chatbot from '../assets/images/chatbot.png'
-import chatbot from '../assets/images/chatbot.png'
+import { useNavigate } from 'react-router-dom'
+import avatarUser from '../assets/images/avatars/1.jpg'
 
 const AppHeader = ({ onOpenChat }) => {
+  const navigate = useNavigate()
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [dbList, setDbList] = useState([])
   const [loaded, setLoaded] = useState(false)
   const { setSelectedDb } = useDb()
   const fileInputRef = useRef(null)
+  const userMenuRef = useRef(null)
   const [loading, setLoading] = useState(false)
 
   // state cho popup upload
@@ -38,6 +40,27 @@ const AppHeader = ({ onOpenChat }) => {
 
   // state cho sidebar database
   const [showDbSidebar, setShowDbSidebar] = useState(false)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!isUserMenuOpen) {
+        return
+      }
+      const target = event.target
+      const wrapper = userMenuRef.current
+      if (wrapper && !wrapper.contains(target)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [isUserMenuOpen])
 
   const fetchDatabases = async () => {
     try {
@@ -95,6 +118,7 @@ const AppHeader = ({ onOpenChat }) => {
   // khi bấm Dashboard: fetch database và mở sidebar
   const handleDashboardClick = async (e) => {
     e.preventDefault()
+    setIsUserMenuOpen(false)
     setLoaded(false)
     await fetchDatabases()
     setShowDbSidebar(true)
@@ -102,18 +126,25 @@ const AppHeader = ({ onOpenChat }) => {
 
   // khi đóng sidebar thì reset lại trạng thái
   const handleCloseSidebar = () => {
+
+    setIsUserMenuOpen(false)
     setShowDbSidebar(false)
     setLoaded(false)
   }
 
   return (
+
     <CHeader position="sticky" className="mb-4">
       <CContainer fluid className="d-flex align-items-center justify-content-between">
         <CHeaderNav className="d-none d-md-flex align-items-center gap-4">
           <CNavItem>
-            <CNavLink href="#" onClick={handleDashboardClick} className="py-0">
-              Dashboard
-            </CNavLink>
+            <CButton
+              type="button"
+              className="pill-button"
+              onClick={handleDashboardClick}
+            >
+              Databases
+            </CButton>
           </CNavItem>
 
           <CNavItem className="d-flex align-items-center">
@@ -132,27 +163,69 @@ const AppHeader = ({ onOpenChat }) => {
         {/* Right side: Chatbot */}
         <CHeaderNav className="d-flex align-items-center gap-3">
           <CNavItem>
-            <CNavLink href="#" className="py-0">
-              Users
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
             <CButton
-              color="light"
-              variant="ghost"
+              type="button"
+              className="pill-button"
               onClick={(e) => {
                 e.preventDefault()
+                setIsUserMenuOpen(false)
                 onOpenChat && onOpenChat()
               }}
-              style={{ padding: '4px', border: 'none', background: 'transparent' }}
             >
-              <img
-                src={chatbot}
-                alt="Chatbot"
-                style={{ width: '28px', height: '28px' }}
-                title="Chatbot"
-              />
+              Ask Procyon
             </CButton>
+          </CNavItem>
+          <CNavItem>
+            <div className="users-avatar__wrapper" ref={userMenuRef}>
+              <CNavLink
+                href="#"
+                className="py-0 users-avatar"
+                aria-label="Team users"
+                onClick={(event) => {
+                  event.preventDefault()
+                  setIsUserMenuOpen((prev) => !prev)
+                }}
+              >
+                <img src={avatarUser} alt="Team users" className="users-avatar__image" />
+              </CNavLink>
+              {isUserMenuOpen ? (
+                <div className="users-menu" role="menu" aria-label="User menu">
+                  <button
+                    type="button"
+                    className="users-menu__item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsUserMenuOpen(false)
+                      navigate('/user')
+                    }}
+                  >
+                    Profile
+                  </button>
+                  <button
+                    type="button"
+                    className="users-menu__item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsUserMenuOpen(false)
+                      navigate('/settings')
+                    }}
+                  >
+                    Account settings
+                  </button>
+                  <button
+                    type="button"
+                    className="users-menu__item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsUserMenuOpen(false)
+                      navigate('/home')
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </CNavItem>
         </CHeaderNav>
 
@@ -244,4 +317,20 @@ const AppHeader = ({ onOpenChat }) => {
 }
 
 export default AppHeader
-// ...existing code...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

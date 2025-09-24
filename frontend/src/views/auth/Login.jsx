@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from './AuthLayout'
 import styles from './AuthLayout.module.scss'
+import googleIcon from '../../assets/images/icons-google.png'
+import appleIcon from '../../assets/images/icons-apple.png'
 import authIllustration from '../../assets/images/team-collaboration-hero.png'
 import { extractErrorMessage, loginUser } from '../../services/authService'
 
@@ -98,11 +100,11 @@ const Login = () => {
       </div>
       <div className={styles.socialRow}>
         <button type="button" className={styles.socialButton} onClick={handleProviderRedirect}>
-          <span className={styles.socialIcon}>TODO</span>
+          <img src={googleIcon} alt="Google" className={styles.socialIcon} />
           Sign in with Google
         </button>
         <button type="button" className={styles.socialButton} onClick={handleProviderRedirect}>
-          <span className={styles.socialIcon}>TODO</span>
+          <img src={appleIcon} alt="Apple" className={styles.socialIcon} />
           Sign in with Apple
         </button>
       </div>
