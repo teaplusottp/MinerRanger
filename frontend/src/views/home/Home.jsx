@@ -1,7 +1,7 @@
-﻿import React from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import styles from './Home.module.scss'
-import heroIllustration from '../../../../design/Hero-Wrapper__image--center.png'
+import heroIllustration from '../../assets/images/team-collaboration-hero.png'
 
 const Home = () => {
   return (

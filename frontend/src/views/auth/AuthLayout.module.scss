@@ -1,11 +1,11 @@
-﻿.page {
+.page {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 48px 32px;
   background-color: #f5f5f5;
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--app-font-family);
 }
 
 .shell {
@@ -294,4 +294,5 @@
     font-size: 15px;
   }
 }
+
 

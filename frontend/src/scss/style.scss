@@ -1,10 +1,17 @@
-@use "@coreui/coreui/scss/coreui" as * with ( 
+@use "@coreui/coreui/scss/coreui" as * with (
   $enable-deprecation-messages: false,
 );
 @use "@coreui/chartjs/scss/coreui-chartjs";
 @use "vendors/simplebar";
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --app-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
 body {
+  font-family: var(--app-font-family);
   background-color: var(--cui-tertiary-bg);
 }
 
@@ -58,6 +65,7 @@ body {
 
 @include color-mode(dark) {
   body {
+  font-family: var(--app-font-family);
     background-color: var(--cui-dark-bg-subtle);
   }
 
@@ -65,3 +73,63 @@ body {
     --cui-footer-bg: var(--cui-body-bg);
   }
 }
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 22px;
+  height: 44px;
+  align-self: center;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #3aa6ff, #147dff);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(20, 125, 255, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  font-family: inherit;
+}
+
+.upload-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(20, 125, 255, 0.4);
+}
+
+.upload-button:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 18px rgba(20, 125, 255, 0.3);
+}
+
+.upload-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 2px;
+}
+
+.upload-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.upload-button__label {
+  letter-spacing: 0.01em;
+}
+
+
+
+
+
+
+

@@ -21,7 +21,6 @@ import {
   CListGroupItem,
 } from '@coreui/react'
 import { useDb } from '/src/context/DbContext.js'
-import upload from '../assets/images/file.png'
 //import chatbot from '../assets/images/chatbot.png'
 import chatbot from '../assets/images/chatbot.png'
 
@@ -109,36 +108,52 @@ const AppHeader = ({ onOpenChat }) => {
 
   return (
     <CHeader position="sticky" className="mb-4">
-      <CContainer fluid style={{ position: 'relative' }}>
-        <CHeaderNav className="d-none d-md-flex me-auto">
+      <CContainer fluid className="d-flex align-items-center justify-content-between">
+        <CHeaderNav className="d-none d-md-flex align-items-center gap-4">
           <CNavItem>
-            <CNavLink href="#" onClick={handleDashboardClick}>
+            <CNavLink href="#" onClick={handleDashboardClick} className="py-0">
               Dashboard
             </CNavLink>
           </CNavItem>
 
-          <CHeaderNav className="ms-auto d-flex align-items-center">
-            <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}>
-              <CNavLink href="#">Users</CNavLink>
-            </div>
-          </CHeaderNav>
+          <CNavItem className="d-flex align-items-center">
+            <button
+              type="button"
+              className="upload-button"
+              onClick={() => setVisible(true)}
+              title="Upload File"
+            >
+              <span className="upload-button__icon" aria-hidden="true">+</span>
+              <span className="upload-button__label">Upload</span>
+            </button>
+          </CNavItem>
+        </CHeaderNav>
 
-        <CNavItem>
-  <CButton
-    color="light"
-    variant="ghost"
-    onClick={() => setVisible(true)}
-    style={{ padding: "4px", border: "none", background: "transparent" }}
-  >
-    <img
-      src={upload}
-      alt="Upload"
-      style={{ width: "28px", height: "28px" }}
-      title="Upload File"
-    />
-  </CButton>
-</CNavItem>
-
+        {/* Right side: Chatbot */}
+        <CHeaderNav className="d-flex align-items-center gap-3">
+          <CNavItem>
+            <CNavLink href="#" className="py-0">
+              Users
+            </CNavLink>
+          </CNavItem>
+          <CNavItem>
+            <CButton
+              color="light"
+              variant="ghost"
+              onClick={(e) => {
+                e.preventDefault()
+                onOpenChat && onOpenChat()
+              }}
+              style={{ padding: '4px', border: 'none', background: 'transparent' }}
+            >
+              <img
+                src={chatbot}
+                alt="Chatbot"
+                style={{ width: '28px', height: '28px' }}
+                title="Chatbot"
+              />
+            </CButton>
+          </CNavItem>
         </CHeaderNav>
 
         {/* Modal upload */}
@@ -182,28 +197,6 @@ const AppHeader = ({ onOpenChat }) => {
           </CModalFooter>
         </CModal>
 
-        {/* Right side: Chatbot */}
-        <CHeaderNav className="ms-auto d-flex align-items-center">
-          <div style={{ position: 'absolute', right: '15%', top: '50%', transform: 'translateY(-50%)' }}>
-          <CButton
-  color="light"
-  variant="ghost"
-  onClick={(e) => {
-    e.preventDefault()
-    onOpenChat && onOpenChat()
-  }}
-  style={{ padding: "4px", border: "none", background: "transparent" }}
->
-  <img
-    src={chatbot}
-    alt="Chatbot"
-    style={{ width: "28px", height: "28px" }}
-    title="Chatbot"
-  />
-</CButton>
-
-          </div>
-        </CHeaderNav>
       </CContainer>
 
       {/* Sidebar (offcanvas) hiển thị danh sách databases */}

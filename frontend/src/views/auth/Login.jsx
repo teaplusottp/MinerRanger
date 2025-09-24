@@ -1,8 +1,8 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from './AuthLayout'
 import styles from './AuthLayout.module.scss'
-import authIllustration from '../../../../design/Hero-Wrapper__image--center.png'
+import authIllustration from '../../assets/images/team-collaboration-hero.png'
 import { extractErrorMessage, loginUser } from '../../services/authService'
 
 const AUTH_IMAGE_SRC = authIllustration
