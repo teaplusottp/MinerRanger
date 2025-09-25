@@ -8,6 +8,7 @@ import { DbProvider } from './context/DbContext'
 
 // We use those styles to show code examples, you should remove them in your application.
 import './scss/examples.scss'
+import GuestRoute from './components/GuestRoute'
 
 // Containers
 const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
@@ -46,9 +47,11 @@ const App = () => {
         >
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route element={<GuestRoute />}>
+              <Route path="/home" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+            </Route>
             <Route path="/about" element={<PlaceholderPage title="About us" />} />
             <Route path="/blog" element={<PlaceholderPage title="Blog" />} />
             <Route path="/demo" element={<PlaceholderPage title="How it works" />} />
