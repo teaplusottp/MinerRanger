@@ -17,6 +17,7 @@ const mapProfileResponse = (data = {}) => ({
   lastName: data.lastName ?? '',
   telNumber: data.telNumber ?? '',
   gender: data.gender ?? '',
+  avatar: data.avatar ?? '',
   createdAt: data.createdAt ?? '',
 })
 
@@ -40,4 +41,16 @@ export const updateUserProfile = async (token, payload) => {
     ...profile,
     passwordChanged: Boolean(response.data?.passwordChanged),
   }
+}
+
+export const uploadUserAvatar = async (token, file) => {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  const response = await userClient.post('/avatar', formData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return mapProfileResponse(response.data)
 }

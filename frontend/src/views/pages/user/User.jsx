@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './User.scss'
 import avatarImage from '../../../assets/images/avatars/7.jpg'
 import { extractErrorMessage } from '../../../services/authService'
-import { getUserProfile, updateUserProfile } from '../../../services/userService'
+import { getUserProfile, updateUserProfile, uploadUserAvatar } from '../../../services/userService'
 
 const AUTH_TOKEN_KEY = 'minerranger.authToken'
 const AUTH_USER_KEY = 'minerranger.user'
+const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024
 
 const initialFormState = {
   firstName: '',
@@ -52,6 +53,7 @@ const persistUserToStorage = (profile) => {
       id: profile.id,
       email: profile.email,
       username: profile.username,
+      avatar: profile.avatar ?? '',
     }
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(storedUser))
   } catch (storageError) {
@@ -72,15 +74,30 @@ const UserPage = () => {
   const [statusMessage, setStatusMessage] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [passwordStatus, setPasswordStatus] = useState('')
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState('')
+  const [avatarStatus, setAvatarStatus] = useState('')
+  const avatarInputRef = useRef(null)
 
   const updateProfileState = useCallback((data) => {
-    setProfileData(data)
+    if (!data) {
+      setProfileData(null)
+      setFormState({ ...initialFormState })
+      return
+    }
+
+    const profile = {
+      ...data,
+      avatar: normalizeValue(data.avatar),
+    }
+
+    setProfileData(profile)
     setFormState({
-      firstName: data.firstName ?? '',
-      lastName: data.lastName ?? '',
-      username: data.username ?? '',
-      telNumber: data.telNumber ?? '',
-      gender: data.gender ?? '',
+      firstName: profile.firstName ?? '',
+      lastName: profile.lastName ?? '',
+      username: profile.username ?? '',
+      telNumber: profile.telNumber ?? '',
+      gender: profile.gender ?? '',
     })
   }, [])
 
@@ -115,6 +132,8 @@ const UserPage = () => {
     setStatusMessage('')
     setPasswordError('')
     setPasswordStatus('')
+    setAvatarError('')
+    setAvatarStatus('')
     setPasswordState({ ...initialPasswordState })
 
     try {
@@ -135,6 +154,62 @@ const UserPage = () => {
   useEffect(() => {
     loadProfile()
   }, [loadProfile])
+
+  const handleAvatarClick = () => {
+    if (isAvatarUploading || isLoading) {
+      return
+    }
+
+    setAvatarError('')
+    setAvatarStatus('')
+    avatarInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0]
+    setAvatarError('')
+    setAvatarStatus('')
+
+    if (!file) {
+      return
+    }
+
+    if (file.type !== 'image/png') {
+      setAvatarError('Please choose a PNG image.')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      setAvatarError('Avatar must be 5 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+
+    if (!authToken) {
+      setAvatarError('Authentication required. Please log in again.')
+      event.target.value = ''
+      handleUnauthorized()
+      return
+    }
+
+    setIsAvatarUploading(true)
+    try {
+      const updatedProfile = await uploadUserAvatar(authToken, file)
+      updateProfileState(updatedProfile)
+      persistUserToStorage(updatedProfile)
+      setAvatarStatus('Avatar updated successfully.')
+    } catch (error) {
+      const message = extractErrorMessage(error, 'Unable to upload avatar right now.')
+      setAvatarError(message)
+      if (error?.response?.status === 401) {
+        handleUnauthorized()
+      }
+    } finally {
+      setIsAvatarUploading(false)
+      event.target.value = ''
+    }
+  }
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
@@ -269,8 +344,10 @@ const UserPage = () => {
 
   const genderDisplay = formatGender(profileData?.gender)
 
+  const profileAvatar = normalizeValue(profileData?.avatar)
+
   const displayProfile = {
-    avatar: avatarImage,
+    avatar: profileAvatar || avatarImage,
     username: profileData?.username ? `@${profileData.username}` : '@User-Name',
     email: profileData?.email || 'user@email.com',
     name:
@@ -297,9 +374,40 @@ const UserPage = () => {
       <div className="user-page__layout">
         <div>
           <article className="user-card">
-            <img src={displayProfile.avatar} alt="User avatar" className="user-card__avatar" />
+            <button
+              type="button"
+              className="user-card__avatar-trigger"
+              onClick={handleAvatarClick}
+              disabled={isAvatarUploading || isLoading}
+            >
+              <img src={displayProfile.avatar} alt="User avatar" className="user-card__avatar" />
+              <span
+                className={`user-card__avatar-overlay${
+                  isAvatarUploading ? ' user-card__avatar-overlay--active' : ''
+                }`}
+              >
+                {isAvatarUploading ? 'Uploading...' : 'Change avatar'}
+              </span>
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/png"
+              className="user-card__avatar-input"
+              onChange={handleAvatarChange}
+            />
             <div className="user-card__username">{displayProfile.username}</div>
             <div className="user-card__email">{displayProfile.email}</div>
+            {avatarError ? (
+              <div className="user-card__avatar-message user-card__avatar-message--error">
+                {avatarError}
+              </div>
+            ) : null}
+            {avatarStatus ? (
+              <div className="user-card__avatar-message user-card__avatar-message--success">
+                {avatarStatus}
+              </div>
+            ) : null}
           </article>
 
           <article className="user-info">

@@ -1,9 +1,39 @@
 import express from "express";
+import multer from "multer";
 import User from "../models/User.js";
 import { protect } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
+import { createAvatarObjectName, uploadAvatarBuffer } from "../services/gcsUploader.js";
 
 const router = express.Router();
+
+const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024;
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_AVATAR_FILE_SIZE,
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype !== "image/png") {
+      cb(new Error("Only PNG images are allowed"));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+const mapUserProfile = (user) => ({
+  id: user._id,
+  username: user.username,
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  telNumber: user.telNumber,
+  gender: user.gender,
+  avatar: user.avatar,
+  createdAt: user.createdAt,
+});
 
 // Register
 router.post("/register", async (req, res) => {
@@ -20,10 +50,9 @@ router.post("/register", async (req, res) => {
 
     const user = await User.create({ username, email, password });
     const token = generateToken(user._id);
+    const profile = mapUserProfile(user);
     res.status(201).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
+      ...profile,
       token,
     });
   } catch (err) {
@@ -44,10 +73,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     const token = generateToken(user._id);
+    const profile = mapUserProfile(user);
     res.status(200).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
+      ...profile,
       token,
     });
   } catch (err) {
@@ -56,25 +84,61 @@ router.post("/login", async (req, res) => {
 });
 
 // Me
-router.get("/me", protect, async (req, res) => {
-  res.status(200).json(req.user);
+router.get("/me", protect, (req, res) => {
+  res.status(200).json(mapUserProfile(req.user));
 });
 
 // Dashboard
 router.get("/dashboard", protect, async (req, res) => {
-  const safeUser = req.user
-    ? {
-        id: req.user._id,
-        username: req.user.username,
-        email: req.user.email,
-      }
-    : null;
+  const safeUser = req.user ? mapUserProfile(req.user) : null;
 
   res.status(200).json({
     user: safeUser,
     message: safeUser?.username
       ? `Welcome back, ${safeUser.username}!`
       : "Welcome to your dashboard!",
+  });
+});
+
+router.post("/avatar", protect, (req, res) => {
+  const handleUpload = upload.single("avatar");
+  handleUpload(req, res, async (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ message: "Avatar exceeds the 5 MB limit." });
+      }
+      if (err?.message === "Only PNG images are allowed") {
+        return res.status(400).json({ message: err.message });
+      }
+      console.error("Avatar upload failed:", err);
+      return res.status(400).json({ message: "Unable to process avatar upload." });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Avatar file is required." });
+    }
+
+    try {
+      const user = await User.findById(req.user._id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const destination = createAvatarObjectName(req.user._id.toString());
+      const publicUrl = await uploadAvatarBuffer({
+        buffer: req.file.buffer,
+        destination,
+        contentType: req.file.mimetype,
+      });
+
+      user.avatar = publicUrl;
+      const updatedUser = await user.save();
+
+      return res.json(mapUserProfile(updatedUser));
+    } catch (error) {
+      console.error("Failed to upload avatar:", error);
+      return res.status(500).json({ message: "Failed to upload avatar." });
+    }
   });
 });
 
@@ -213,14 +277,7 @@ router.patch("/profile", protect, async (req, res) => {
 
     if (!hasProfileChanges && !passwordChanged) {
       return res.json({
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        telNumber: user.telNumber,
-        gender: user.gender,
-        createdAt: user.createdAt,
+        ...mapUserProfile(user),
         passwordChanged: false,
       });
     }
@@ -228,14 +285,7 @@ router.patch("/profile", protect, async (req, res) => {
     const updatedUser = await user.save();
 
     return res.json({
-      id: updatedUser._id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      telNumber: updatedUser.telNumber,
-      gender: updatedUser.gender,
-      createdAt: updatedUser.createdAt,
+      ...mapUserProfile(updatedUser),
       passwordChanged,
     });
   } catch (err) {
