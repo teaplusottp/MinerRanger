@@ -16,6 +16,13 @@ const initialFormState = {
   gender: '',
 }
 
+const initialPasswordState = {
+  currentPassword: '',
+  confirmPassword: '',
+  newPassword: '',
+  confirmNewPassword: '',
+}
+
 const normalizeValue = (value) => {
   if (value === undefined || value === null) {
     return ''
@@ -39,15 +46,43 @@ const formatGender = (value) => {
   }
 }
 
+const persistUserToStorage = (profile) => {
+  try {
+    const storedUser = {
+      id: profile.id,
+      email: profile.email,
+      username: profile.username,
+    }
+    window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(storedUser))
+  } catch (storageError) {
+    // ignore storage access issues
+  }
+}
+
 const UserPage = () => {
   const navigate = useNavigate()
   const [authToken, setAuthToken] = useState('')
   const [formState, setFormState] = useState(initialFormState)
+  const [passwordState, setPasswordState] = useState(initialPasswordState)
   const [profileData, setProfileData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordStatus, setPasswordStatus] = useState('')
+
+  const updateProfileState = useCallback((data) => {
+    setProfileData(data)
+    setFormState({
+      firstName: data.firstName ?? '',
+      lastName: data.lastName ?? '',
+      username: data.username ?? '',
+      telNumber: data.telNumber ?? '',
+      gender: data.gender ?? '',
+    })
+  }, [])
 
   const handleUnauthorized = useCallback(() => {
     try {
@@ -78,17 +113,13 @@ const UserPage = () => {
     setIsLoading(true)
     setErrorMessage('')
     setStatusMessage('')
+    setPasswordError('')
+    setPasswordStatus('')
+    setPasswordState({ ...initialPasswordState })
 
     try {
       const data = await getUserProfile(token)
-      setProfileData(data)
-      setFormState({
-        firstName: data.firstName ?? '',
-        lastName: data.lastName ?? '',
-        username: data.username ?? '',
-        telNumber: data.telNumber ?? '',
-        gender: data.gender ?? '',
-      })
+      updateProfileState(data)
     } catch (error) {
       const message = extractErrorMessage(error, 'Unable to load profile right now.')
       setProfileData(null)
@@ -99,7 +130,7 @@ const UserPage = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [handleUnauthorized])
+  }, [handleUnauthorized, updateProfileState])
 
   useEffect(() => {
     loadProfile()
@@ -108,6 +139,11 @@ const UserPage = () => {
   const handleInputChange = (event) => {
     const { name, value } = event.target
     setFormState((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handlePasswordInputChange = (event) => {
+    const { name, value } = event.target
+    setPasswordState((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSaveProfile = async () => {
@@ -155,25 +191,10 @@ const UserPage = () => {
     setIsSaving(true)
     try {
       const updated = await updateUserProfile(authToken, payload)
-      setProfileData(updated)
-      setFormState({
-        firstName: updated.firstName ?? '',
-        lastName: updated.lastName ?? '',
-        username: updated.username ?? '',
-        telNumber: updated.telNumber ?? '',
-        gender: updated.gender ?? '',
-      })
+      const { passwordChanged: _passwordChanged, ...profileFields } = updated
+      updateProfileState(profileFields)
       setStatusMessage('Profile updated successfully.')
-      try {
-        const storedUser = {
-          id: updated.id,
-          email: updated.email,
-          username: updated.username,
-        }
-        window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(storedUser))
-      } catch (storageError) {
-        // ignore storage access issues
-      }
+      persistUserToStorage(profileFields)
     } catch (error) {
       const message = extractErrorMessage(error, 'Unable to update profile right now.')
       setErrorMessage(message)
@@ -182,6 +203,67 @@ const UserPage = () => {
       }
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSavePassword = async () => {
+    setPasswordError('')
+    setPasswordStatus('')
+
+    if (!authToken) {
+      setPasswordError('Authentication required. Please log in again.')
+      handleUnauthorized()
+      return
+    }
+
+    if (!profileData) {
+      setPasswordError('Profile data not loaded yet.')
+      return
+    }
+
+    const { currentPassword, confirmPassword, newPassword, confirmNewPassword } = passwordState
+
+    if (!currentPassword || !confirmPassword || !newPassword || !confirmNewPassword) {
+      setPasswordError('Please complete all password fields.')
+      return
+    }
+
+    if (currentPassword !== confirmPassword) {
+      setPasswordError('Current password confirmation does not match.')
+      return
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('New password confirmation does not match.')
+      return
+    }
+
+    if (newPassword === currentPassword) {
+      setPasswordError('New password must be different from current password.')
+      return
+    }
+
+    setIsPasswordSaving(true)
+    try {
+      const updated = await updateUserProfile(authToken, {
+        currentPassword,
+        confirmPassword,
+        newPassword,
+        confirmNewPassword,
+      })
+      const { passwordChanged, ...profileFields } = updated
+      updateProfileState(profileFields)
+      persistUserToStorage(profileFields)
+      setPasswordState({ ...initialPasswordState })
+      setPasswordStatus(passwordChanged ? 'Password updated successfully.' : 'No password changes applied.')
+    } catch (error) {
+      const message = extractErrorMessage(error, 'Unable to update password right now.')
+      setPasswordError(message)
+      if (error?.response?.status === 401) {
+        handleUnauthorized()
+      }
+    } finally {
+      setIsPasswordSaving(false)
     }
   }
 
@@ -199,7 +281,15 @@ const UserPage = () => {
     gender: genderDisplay || 'Not specified',
   }
 
+  const accountCreatedAt = profileData?.createdAt ? new Date(profileData.createdAt) : null
+  const daysSinceAccountCreation =
+    accountCreatedAt && !Number.isNaN(accountCreatedAt.getTime())
+      ? Math.max(0, Math.floor((Date.now() - accountCreatedAt.getTime()) / (1000 * 60 * 60 * 24)))
+      : null
+  const dayStartedValue = daysSinceAccountCreation !== null ? String(daysSinceAccountCreation) : '--'
+
   const isFormDisabled = isLoading || isSaving
+  const isPasswordDisabled = isLoading || isPasswordSaving
 
   return (
     <div className="user-page">
@@ -342,10 +432,13 @@ const UserPage = () => {
                 </label>
                 <input
                   id="current-password-input"
+                  name="currentPassword"
                   type="password"
                   className="profile-settings__input"
                   placeholder="Put your current password..."
-                  disabled
+                  value={passwordState.currentPassword}
+                  onChange={handlePasswordInputChange}
+                  disabled={isPasswordDisabled}
                 />
               </div>
               <div className="profile-settings__field">
@@ -354,10 +447,13 @@ const UserPage = () => {
                 </label>
                 <input
                   id="confirm-password-input"
+                  name="confirmPassword"
                   type="password"
                   className="profile-settings__input"
                   placeholder="Confirm current password..."
-                  disabled
+                  value={passwordState.confirmPassword}
+                  onChange={handlePasswordInputChange}
+                  disabled={isPasswordDisabled}
                 />
               </div>
               <div className="profile-settings__field">
@@ -366,10 +462,13 @@ const UserPage = () => {
                 </label>
                 <input
                   id="new-password-input"
+                  name="newPassword"
                   type="password"
                   className="profile-settings__input"
                   placeholder="Put your new password..."
-                  disabled
+                  value={passwordState.newPassword}
+                  onChange={handlePasswordInputChange}
+                  disabled={isPasswordDisabled}
                 />
               </div>
               <div className="profile-settings__field">
@@ -378,27 +477,37 @@ const UserPage = () => {
                 </label>
                 <input
                   id="confirm-new-password-input"
+                  name="confirmNewPassword"
                   type="password"
                   className="profile-settings__input"
                   placeholder="Confirm new password..."
-                  disabled
+                  value={passwordState.confirmNewPassword}
+                  onChange={handlePasswordInputChange}
+                  disabled={isPasswordDisabled}
                 />
               </div>
             </div>
             <div className="profile-settings__actions">
-              <button type="button" className="profile-settings__button" disabled>
-                Save changes
+              <button
+                type="button"
+                className="profile-settings__button"
+                onClick={handleSavePassword}
+                disabled={isPasswordDisabled}
+              >
+                {isPasswordSaving ? 'Saving...' : 'Save changes'}
               </button>
               <button type="button" className="profile-settings__password-help" disabled>
                 Forgot your password?
               </button>
             </div>
+            {passwordError ? <div className="profile-settings__error">{passwordError}</div> : null}
+            {passwordStatus ? <div className="profile-settings__status">{passwordStatus}</div> : null}
           </section>
         </article>
 
         <aside className="user-metric-stack">
           {[
-            { label: 'Day started', value: '1', tone: 'red' },
+            { label: 'Day started', value: dayStartedValue, tone: 'red' },
             { label: 'Dataset uploaded', value: '17', tone: 'green' },
           ].map((metric) => (
             <div key={metric.label} className="user-metric-card">
@@ -415,3 +524,4 @@ const UserPage = () => {
 }
 
 export default UserPage
+

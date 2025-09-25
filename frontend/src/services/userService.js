@@ -17,6 +17,7 @@ const mapProfileResponse = (data = {}) => ({
   lastName: data.lastName ?? '',
   telNumber: data.telNumber ?? '',
   gender: data.gender ?? '',
+  createdAt: data.createdAt ?? '',
 })
 
 export const getUserProfile = async (token) => {
@@ -34,5 +35,9 @@ export const updateUserProfile = async (token, payload) => {
       Authorization: `Bearer ${token}`,
     },
   })
-  return mapProfileResponse(response.data)
+  const profile = mapProfileResponse(response.data)
+  return {
+    ...profile,
+    passwordChanged: Boolean(response.data?.passwordChanged),
+  }
 }

@@ -86,9 +86,13 @@ router.patch("/profile", protect, async (req, res) => {
       telNumber,
       gender,
       username,
+      currentPassword,
+      confirmPassword,
+      newPassword,
+      confirmNewPassword,
     } = req.body;
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select("+password");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -101,7 +105,15 @@ router.patch("/profile", protect, async (req, res) => {
       return String(value).trim();
     };
 
-    let hasChanges = false;
+    const normalizePassword = (value) => {
+      if (value === undefined || value === null) {
+        return "";
+      }
+      return String(value);
+    };
+
+    let hasProfileChanges = false;
+    let passwordChanged = false;
 
     if (typeof username !== "undefined") {
       const sanitizedUsername = normalizeValue(username);
@@ -117,8 +129,70 @@ router.patch("/profile", protect, async (req, res) => {
         }
 
         user.username = sanitizedUsername;
-        hasChanges = true;
+        hasProfileChanges = true;
       }
+    }
+
+    const passwordFields = [
+      currentPassword,
+      confirmPassword,
+      newPassword,
+      confirmNewPassword,
+    ];
+
+    const wantsPasswordChange = passwordFields.some(
+      (field) => typeof field !== "undefined"
+    );
+
+    if (wantsPasswordChange) {
+      const current = normalizePassword(currentPassword);
+      const confirmCurrent = normalizePassword(confirmPassword);
+      const nextPassword = normalizePassword(newPassword);
+      const confirmNextPassword = normalizePassword(confirmNewPassword);
+
+      if (
+        !current.trim() ||
+        !confirmCurrent.trim() ||
+        !nextPassword.trim() ||
+        !confirmNextPassword.trim()
+      ) {
+        return res.status(400).json({ message: "Please fill in all password fields." });
+      }
+
+      if (current !== confirmCurrent) {
+        return res
+          .status(400)
+          .json({ message: "Current password confirmation does not match." });
+      }
+
+      if (nextPassword !== confirmNextPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password confirmation does not match." });
+      }
+
+      if (current === nextPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password must be different from current password." });
+      }
+
+      const isCurrentValid = await user.matchPassword(current);
+
+      if (!isCurrentValid) {
+        return res.status(400).json({ message: "Current password is incorrect." });
+      }
+
+      const isReusingPassword = await user.matchPassword(nextPassword);
+      if (isReusingPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password must be different from current password." });
+      }
+
+      user.password = nextPassword;
+      user.markModified("password");
+      passwordChanged = true;
     }
 
     const applyUpdate = (field, rawValue) => {
@@ -128,7 +202,7 @@ router.patch("/profile", protect, async (req, res) => {
       const nextValue = normalizeValue(rawValue);
       if (user[field] !== nextValue) {
         user[field] = nextValue;
-        hasChanges = true;
+        hasProfileChanges = true;
       }
     };
 
@@ -137,7 +211,7 @@ router.patch("/profile", protect, async (req, res) => {
     applyUpdate("telNumber", telNumber);
     applyUpdate("gender", gender);
 
-    if (!hasChanges) {
+    if (!hasProfileChanges && !passwordChanged) {
       return res.json({
         id: user._id,
         username: user.username,
@@ -146,6 +220,8 @@ router.patch("/profile", protect, async (req, res) => {
         lastName: user.lastName,
         telNumber: user.telNumber,
         gender: user.gender,
+        createdAt: user.createdAt,
+        passwordChanged: false,
       });
     }
 
@@ -159,6 +235,8 @@ router.patch("/profile", protect, async (req, res) => {
       lastName: updatedUser.lastName,
       telNumber: updatedUser.telNumber,
       gender: updatedUser.gender,
+      createdAt: updatedUser.createdAt,
+      passwordChanged,
     });
   } catch (err) {
     console.error("Failed to update profile:", err);
@@ -172,3 +250,6 @@ const generateToken = (id) => {
 };
 
 export default router;
+
+
+
