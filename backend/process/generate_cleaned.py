@@ -1,3 +1,4 @@
+import asyncio
 import pm4py
 import pandas as pd
 import numpy as np
@@ -9,7 +10,7 @@ from openai import OpenAI
 
 # ================== Helper functions ==================
 # Hàm trích str -> json
-def extract_json_between_braces(text):
+async def extract_json_between_braces(text):
     # Xử lý nếu có markdown ```json
     text = text.strip()
     if text.startswith("```json"):
@@ -31,14 +32,14 @@ def extract_json_between_braces(text):
 
 
 # Hàm call Gemini:
-def call_gemini(prompt, GEMINI_API_KEY):
+async def call_gemini(prompt, GEMINI_API_KEY):
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.0-flash')
     response = model.generate_content(prompt)
     return response.text
 
 # Hàm call Perplexity
-def call_perplexity(prompt, PERPLEXITY_API_KEY):
+async def call_perplexity(prompt, PERPLEXITY_API_KEY):
     client = OpenAI(
         api_key=PERPLEXITY_API_KEY,
         base_url="https://api.perplexity.ai"
@@ -55,7 +56,7 @@ def call_perplexity(prompt, PERPLEXITY_API_KEY):
     return(response.choices[0].message.content)
 
 # Điền khuyết giá trị thiếu.
-def impute_groupwise(df, group_col, num_cols, cat_cols):
+async def impute_groupwise(df, group_col, num_cols, cat_cols):
     df = df.copy()
 
     # ===== Xử lý cột số =====
@@ -69,7 +70,7 @@ def impute_groupwise(df, group_col, num_cols, cat_cols):
 
     # ===== Xử lý cột phân loại =====
     for col in cat_cols:
-        def fill_mode(series):
+        async def fill_mode(series):
             mode_val = series.mode()
             if not mode_val.empty:
                 return series.fillna(mode_val.iloc[0])
@@ -83,7 +84,7 @@ def impute_groupwise(df, group_col, num_cols, cat_cols):
     return df
 
 # ================== Main preprocessing pipeline ==================
-def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path='../data/'):
+async def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path='../data/'):
     # Đọc file description
     input_path = os.path.join(path, input_file_name)
     description_path = os.path.join(path, description_file_name)
@@ -118,8 +119,8 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
 
     Lưu ý: Chỉ trả về JSON. Không cần giải thích, không in thêm chữ nào khác. Nếu không tìm thấy, để giá trị là 'NULL'.
     """
-    start_end_times_text = call_gemini(find_start_end_times, GEMINI_API_KEY)
-    start_end_times = extract_json_between_braces(start_end_times_text)
+    start_end_times_text = await call_gemini(find_start_end_times, GEMINI_API_KEY)
+    start_end_times = await extract_json_between_braces(start_end_times_text)
     print('Trích xuất start_end_times.')
 
     # Load event logs
@@ -149,12 +150,12 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
     Lưu ý: Chỉ trả về JSON. Không cần giải thích, không in thêm chữ nào khác. Nếu không tìm thấy, để giá trị là 'NULL'.
     """
 
-    main_column_names_text = call_gemini(find_columns_name, GEMINI_API_KEY)
-    main_column_names = extract_json_between_braces(main_column_names_text)
+    main_column_names_text = await call_gemini(find_columns_name, GEMINI_API_KEY)
+    main_column_names = await extract_json_between_braces(main_column_names_text)
     print('Lấy tên cột chính.')
 
     # Bước 1: Kiểm tra có đủ 3 cột chính. (ID, Activity, Timestamp)
-    def check_enough_main_columns(main_column_names):
+    async def check_enough_main_columns(main_column_names):
         if len(main_column_names) == 3:
             if all(main_column_names[k] != 'NULL' for k in ['case_id_column', 'activity_column', 'timestamp_column']):
                 return 'Enough 3 main columns.'
@@ -163,7 +164,7 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
                 return 'Enough 4 main columns.'
         return 'Not enough main columns.'
     
-    check_response = check_enough_main_columns(main_column_names)
+    check_response = await check_enough_main_columns(main_column_names)
     print('Bước 1: Kiểm tra có đủ 3 cột chính.')
 
     # Bước 2: Đổi tên cột về đúng định dạng.
@@ -235,8 +236,11 @@ def preprocess_event_logs(input_file_name, description_file_name, GEMINI_API_KEY
 
     return df_logs
 
+from . import prinvohieuhoa
+import traceback
+
 async def clean_and_save_logs(folder_path, GEMINI_API_KEY=None):
-    files = os.listdir(folder_path)
+    files = await asyncio.to_thread(os.listdir, folder_path)
 
     log_file = next((f for f in files if f.endswith('.xes') or f.endswith('.xes.gz')), None)
     desc_file = next((f for f in files if f.endswith('.txt')), None)
@@ -244,20 +248,28 @@ async def clean_and_save_logs(folder_path, GEMINI_API_KEY=None):
     if log_file is None or desc_file is None:
         print("[⚠️] Không tìm thấy file log (.xes/.xes.gz) hoặc file mô tả (.txt)")
         return None
+    
+    # Nếu preprocess_event_logs là async def:
+    
+    clean_df = await preprocess_event_logs(
+            input_file_name=log_file,
+            description_file_name=desc_file,
+            GEMINI_API_KEY=GEMINI_API_KEY,
+            path=folder_path)
+      
 
-    clean_df = preprocess_event_logs(
-        input_file_name=log_file,
-        description_file_name=desc_file,
-        GEMINI_API_KEY=GEMINI_API_KEY,
-        path=folder_path
-    )
+
 
     if clean_df is None:
         print("[⚠️] Không có logs nào được lưu vì quá trình preprocessing bị dừng.")
         return None
 
-    # Chuẩn hoá timestamp
-    clean_df = pm4py.objects.log.util.dataframe_utils.convert_timestamp_columns_in_df(clean_df)
+    
+    clean_df = await asyncio.to_thread(
+        pm4py.objects.log.util.dataframe_utils.convert_timestamp_columns_in_df,
+        clean_df
+    )
+   
 
     # Convert sang EventLog
     event_log = pm4py.objects.conversion.log.converter.apply(clean_df)
@@ -270,9 +282,6 @@ async def clean_and_save_logs(folder_path, GEMINI_API_KEY=None):
     pm4py.write_xes(event_log, output_path)
     print(f"[✅] Logs đã được lưu thành công vào: {output_path}")
     return output_file
-
-
-
 
 
 

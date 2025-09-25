@@ -136,30 +136,40 @@ async def upload_file(
         "note": note or ""
     }
 
-# ========== Endpoint WebSocket stream log ==========
 @app.websocket("/ws/upload")
 async def ws_upload(ws: WebSocket):
     await ws.accept()
+
+    folder_name = ws.query_params.get("folder")
+    if not folder_name:
+        await ws.send_text("❌ Error: Missing folder param")
+        await ws.close()
+        return
+
+    folder_path = os.path.join(UPLOAD_FOLDER, folder_name)+"/"
 
     queue = asyncio.Queue()
     old_stdout = sys.stdout
     sys.stdout = WebSocketLogger(queue)
 
     async def sender():
-        while True:
-            msg = await queue.get()
-            await ws.send_text(msg)
+        try:
+            while True:
+                msg = await queue.get()
+                await ws.send_text(msg)
+        except Exception:
+            pass
 
     sender_task = asyncio.create_task(sender())
     try:
-        # Ở đây bạn có thể nhận folder_name từ query string / message đầu
-        folder_name = "demo_folder"  
-        folder_path = os.path.join(UPLOAD_FOLDER, folder_name) + "/"
-
-        generated_file = clean_and_save_logs(folder_path, GEMINI_API_KEY)
-        generated_report = gen_report(folder_path, GEMINI_API_KEY)
+        generated_file = await clean_and_save_logs(folder_path, GEMINI_API_KEY)
+        generated_report = await gen_report(folder_path, GEMINI_API_KEY)
 
         await ws.send_text(f"✅ Done: {generated_file}, {generated_report}")
+        await asyncio.sleep(1)  # cho log kịp đẩy ra
+        if generated_report is True:
+            await ws.send_text("✅ Báo cáo đã được tạo thành công!")
+
     except Exception as e:
         await ws.send_text(f"❌ Error: {str(e)}")
     finally:

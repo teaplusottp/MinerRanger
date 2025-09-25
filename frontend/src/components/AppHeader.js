@@ -135,6 +135,14 @@ const AppHeader = ({ onOpenChat }) => {
       ws.onclose = () => {
         setLogMessages((prev) => [...prev, "🔌 WebSocket closed"])
         setLoading(false)
+        // Hiển thị thông báo thành công và đóng modal
+        setTimeout(() => {
+          alert("✅ Upload thành công!")
+          setVisible(false)
+          setSelectedFile(null)
+          setTextValue("")
+          setLogMessages([])
+        }, 300)
       }
     } catch (err) {
       console.error("Lỗi upload:", err)

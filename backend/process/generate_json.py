@@ -29,10 +29,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path):
+async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path):
     # ================== Helper functions ==================
     # Hàm trích str -> json
-    def extract_json_between_braces(text):
+    async def extract_json_between_braces(text):
         # Xử lý nếu có markdown ```json
         text = text.strip()
         if text.startswith("```json"):
@@ -52,14 +52,14 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
         else:
             raise ValueError("Không tìm thấy JSON giữa dấu ngoặc.")
     # Hàm call Gemini:
-    def call_gemini(prompt, GEMINI_API_KEY):
+    async def call_gemini(prompt, GEMINI_API_KEY):
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         return response.text
     
     # Đọc file description
-    with open(path + description_file_name, 'r', encoding='utf-8') as f:
+    with open(description_file_name, 'r', encoding='utf-8') as f:
         description_text = f.read()
 
     # Tìm thời gian bắt đầu, kết thúc từ file description
@@ -83,12 +83,12 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
         Lưu ý: Chỉ trả về JSON. Không cần giải thích, không in thêm chữ nào khác. Nếu không tìm thấy, để giá trị là 'NULL'.
     """
-    start_end_times_text = call_gemini(find_start_end_times, GEMINI_API_KEY)
-    start_end_times = extract_json_between_braces(start_end_times_text)
+    start_end_times_text = await call_gemini(find_start_end_times, GEMINI_API_KEY)
+    start_end_times = await extract_json_between_braces(start_end_times_text)
     print('Trích xuất start_end_times.')
 
     # ================== LOAD DATASET ==================
-    logs = pm4py.read_xes(path + input_file_name)
+    logs = pm4py.read_xes(input_file_name)
     print('Load clean dataset.')
     df_logs = pm4py.convert_to_dataframe(logs)
 
@@ -126,8 +126,8 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {activities_frequency['concept:name'], activities_frequency['count']}
     """
-    top_k_activities_with_frequency_chart_insight = call_gemini(top_k_activities_with_frequency_prompt, GEMINI_API_KEY)
-    def get_k_variants(variants_with_frequency, num_cases, num_variants, min_k=10, coverage_threshold=85):
+    top_k_activities_with_frequency_chart_insight = await call_gemini(top_k_activities_with_frequency_prompt, GEMINI_API_KEY)
+    async def get_k_variants(variants_with_frequency, num_cases, num_variants, min_k=10, coverage_threshold=85):
         coverage = 0
         k = 0
         min_coverage = 0
@@ -145,7 +145,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
                     break
             return k, coverage/100, min_coverage
     variants_with_frequency = variants_get.get_variants_sorted_by_count(variants)
-    k_variants, coverage_variants, min_coverage_variants = get_k_variants(variants_with_frequency, num_cases, num_variants)
+    k_variants, coverage_variants, min_coverage_variants = await get_k_variants(variants_with_frequency, num_cases, num_variants)
 
     # Top k variants
     top_k_variants = variants_with_frequency[:k_variants]
@@ -169,7 +169,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {top_k_variant_names, top_k_variant_counts}
     """
-    top_k_variants_chart_insight = call_gemini(top_k_variant_chart_prompt, GEMINI_API_KEY)
+    top_k_variants_chart_insight = await call_gemini(top_k_variant_chart_prompt, GEMINI_API_KEY)
 
     basic_statistics_prompt = f"""
     Bạn là một hệ thống phân tích dữ liệu.  
@@ -202,7 +202,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
     }}
     }}
     """
-    basic_statistics_insight = call_gemini(basic_statistics_prompt, GEMINI_API_KEY)
+    basic_statistics_insight = await call_gemini(basic_statistics_prompt, GEMINI_API_KEY)
 
     # ================== PROCESS DISCOVERY ==================
     print('2. Process Discovery.')
@@ -232,7 +232,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
         - Thống kê tần suất: {dfg_freq} 
         - Thống kê hiệu năng: {dfg_perf} (đơn vị: ngày).
     """
-    process_map_insight = call_gemini(process_map_prompt, GEMINI_API_KEY)
+    process_map_insight = await call_gemini(process_map_prompt, GEMINI_API_KEY)
     
     # ================== PERFORMANCE ANALYSIS ==================
     print('3. Performance Analysis.')
@@ -272,7 +272,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {path + "throughput_time_density.png"}
     """
-    throughput_time_density_insight = call_gemini(throughput_time_density_prompt, GEMINI_API_KEY)
+    throughput_time_density_insight = await call_gemini(throughput_time_density_prompt, GEMINI_API_KEY)
     # Case Arrival Ratio: Thời gian trung bình giữa 2 case liên tiếp nhau, tính bằng thời điểm bắt đầu của mỗi case. 
     # -> Mức độ thường xuyên hệ thống tiếp nhận case mới.
     case_arrival_ratio = pm4py.get_case_arrival_average(df_logs)
@@ -300,7 +300,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {path + "dotted_chart.png"}
     """
-    dotted_chart_insight = call_gemini(dotted_chart_prompt, GEMINI_API_KEY)
+    dotted_chart_insight = await call_gemini(dotted_chart_prompt, GEMINI_API_KEY)
 
     temporal_profile = temporal_profile_discovery.apply(filtered_logs)
     temporal_profile_days = {
@@ -317,7 +317,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {temporal_profile_days}
     """
-    temporal_profile_insight = call_gemini(temporal_profile_prompt, GEMINI_API_KEY)
+    temporal_profile_insight = await call_gemini(temporal_profile_prompt, GEMINI_API_KEY)
     
     performance_analysis_prompt = f"""
     Bạn là một hệ thống phân tích dữ liệu.  
@@ -353,7 +353,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
     }}
     }}
     """
-    performance_analysis_insight = call_gemini(performance_analysis_prompt, GEMINI_API_KEY)
+    performance_analysis_insight = await call_gemini(performance_analysis_prompt, GEMINI_API_KEY)
     
     # ================== CONFORMANCE CHECKING ==================
     print('4. Conformance Checking.')
@@ -393,7 +393,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {unfit_edges_with_count}
     """
-    unfit_edges_with_count_insight = call_gemini(unfit_edges_with_count_prompt, GEMINI_API_KEY)
+    unfit_edges_with_count_insight = await call_gemini(unfit_edges_with_count_prompt, GEMINI_API_KEY)
     
     unwanted_activity_names = list(unwanted_activities.keys())
     unwanted_activity_stats = []
@@ -437,7 +437,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     {unwanted_activity_stats}
     """
-    unwanted_activity_insight = call_gemini(unwanted_activity_prompt, GEMINI_API_KEY)
+    unwanted_activity_insight = await call_gemini(unwanted_activity_prompt, GEMINI_API_KEY)
     
     conformance_checking_prompt = f"""
     Bạn là một hệ thống phân tích dữ liệu.  
@@ -466,7 +466,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
     }}
     }}
     """
-    conformance_checking_insight = call_gemini(conformance_checking_prompt, GEMINI_API_KEY)
+    conformance_checking_insight = await call_gemini(conformance_checking_prompt, GEMINI_API_KEY)
     # ================== ENHANCEMENT ==================
     print('5. Enhancement.')
     enhancement_prompt = f"""
@@ -485,16 +485,16 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
     - Phân tích hiệu năng: {performance_analysis_insight}
     - Phân tích độ tuân thủ: {conformance_checking_insight}
     """
-    enhancement_insight = call_gemini(enhancement_prompt, GEMINI_API_KEY)
+    enhancement_insight = await call_gemini(enhancement_prompt, GEMINI_API_KEY)
     # ================== SAVE REPORT ==================
     print('6. Save report.json.')
     # Hàm ép keys về str và convert numpy types -> Python native
-    def safe_json(obj):
+    async def safe_json(obj):
         import numpy as np
         if isinstance(obj, dict):
-            return {str(k): safe_json(v) for k, v in obj.items()}
+            return {str(k): await safe_json(v) for k, v in obj.items()}
         elif isinstance(obj, (list, tuple)):
-            return [safe_json(i) for i in obj]
+            return [await safe_json(i) for i in obj]
         elif isinstance(obj, (np.integer, np.int64, np.int32)):
             return int(obj)
         elif isinstance(obj, (np.floating, np.float32, np.float64)):
@@ -576,8 +576,8 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     report['process_discovery']['bpmn_model'] = "bpmn_model.png"
     report['process_discovery']['k_variants'] = int(k_variants)
-    report['process_discovery']['dfg_freq'] = safe_json(dfg_freq)
-    report['process_discovery']['dfg_perf'] = safe_json(dfg_perf)
+    report['process_discovery']['dfg_freq'] = await safe_json(dfg_freq)
+    report['process_discovery']['dfg_perf'] = await safe_json(dfg_perf)
     report['process_discovery']['insights'] = process_map_insight
 
     report['performance_analysis']['mean_case_duration_days'] = float(mean_case_duration)
@@ -594,7 +594,7 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
         "insight": throughput_time_density_insight
     }
     report['performance_analysis']['temporal_profile'] = {
-        "data": safe_json(temporal_profile_days),
+        "data": await safe_json(temporal_profile_days),
         "insight": temporal_profile_insight
     }
     report['performance_analysis']['insights'] = performance_analysis_insight
@@ -602,11 +602,11 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
     report['conformance_checking']['num_unfit_cases'] = int(num_unfit_cases)
     report['conformance_checking']['unfit_cases_percentage'] = float(unfit_cases_percentage)
     report['conformance_checking']['unfit_edges_with_count'] = {
-        "data": safe_json(unfit_edges_with_count),
+        "data": await safe_json(unfit_edges_with_count),
         "insight": unfit_edges_with_count_insight
     }
     report['conformance_checking']['unwanted_activity_stats'] = {
-        "data": safe_json(unwanted_activity_stats),
+        "data": await safe_json(unwanted_activity_stats),
         "insight": unwanted_activity_insight
     }
     report['conformance_checking']['insights'] = conformance_checking_insight
@@ -615,20 +615,42 @@ def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, 
 
     # Cuối cùng: dump ra JSON
     with open(path + "report.json", "w", encoding="utf-8") as f:
-        json.dump(safe_json(report), f, indent=4, ensure_ascii=False)
+        json.dump(await safe_json(report), f, indent=4, ensure_ascii=False)
 
     return True
 
+from . import prinvohieuhoa
+import traceback
 async def gen_report(folder_path,  GEMINI_API_KEY):
+    print(f"[ℹ️] Bắt đầu tạo report cho folder: {folder_path}")
+
+    # Liệt kê file trong folder
     files = os.listdir(folder_path)
+    print("[ℹ️] File trong folder:", files)
+
     log_file = next((f for f in files if f.endswith('_cleaned.xes')), None)
     desc_file = next((f for f in files if f.endswith('.txt')), None)
 
     if log_file is None or desc_file is None:
-        print("[⚠️] Không tìm thấy file log (.xes/.xes.gz) hoặc file mô tả (.txt)")
+        print("[⚠️] Không tìm thấy file log (_cleaned.xes) hoặc file mô tả (.txt)")
         return None
 
-    create_report = analysis_event_logs(log_file, desc_file, GEMINI_API_KEY, folder_path)
+    log_file_path = os.path.join(folder_path, log_file)
+    desc_file_path = os.path.join(folder_path, desc_file)
+
+    print(f"[ℹ️] Log file: {log_file_path}")
+    print(f"[ℹ️] Desc file: {desc_file_path}")
+
+    try:
+        create_report = await analysis_event_logs(log_file_path, desc_file_path, GEMINI_API_KEY, folder_path)
+    except Exception as e:
+        print("[⚠️] Lỗi trong quá trình phân tích và tạo báo cáo:", str(e))
+        traceback.print_exc()
+        return None
+
     if create_report:
+        print("[✅] Report được tạo thành công!")
         return True
+
+    print("[⚠️] Report không được tạo")
     return False
