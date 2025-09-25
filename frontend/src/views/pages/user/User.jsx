@@ -72,13 +72,13 @@ const UserPage = () => {
             <div className="profile-settings__grid">
               <div className="profile-settings__field">
                 <label className="profile-settings__label" htmlFor="firstName-input">
-                  Name
+                  First Name
                 </label>
                 <input
                   id="firstName-input"
                   className="profile-settings__input"
                   defaultValue={personalDetails.firstName}
-                  placeholder="Enter your name"
+                  placeholder="Enter your first name"
                 />
               </div>
               <div className="profile-settings__field">
@@ -93,15 +93,15 @@ const UserPage = () => {
                 />
               </div>
               <div className="profile-settings__field">
-                <label className="profile-settings__label" htmlFor="email-input">
-                  Email
+                <label className="profile-settings__label" htmlFor="username-input">
+                  Username
                 </label>
                 <input
                   id="email-input"
-                  type="email"
+                  type="username"
                   className="profile-settings__input"
-                  defaultValue={personalDetails.email}
-                  placeholder="name@example.com"
+                  defaultValue={personalDetails.username}
+                  placeholder="LionelRonaldo"
                 />
               </div>
               <div className="profile-settings__field">
