@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import {
   CHeader,
   CContainer,
@@ -20,11 +20,16 @@ import {
   CListGroupItem,
 } from '@coreui/react'
 import { useDb } from '/src/context/DbContext.js'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import avatarUser from '../assets/images/avatars/1.jpg'
+
+const AUTH_TOKEN_KEY = 'minerranger.authToken'
+const AUTH_USER_KEY = 'minerranger.user'
 
 const AppHeader = ({ onOpenChat }) => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const isUserPage = location.pathname === '/user'
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [dbList, setDbList] = useState([])
   const [loaded, setLoaded] = useState(false)
@@ -42,6 +47,19 @@ const AppHeader = ({ onOpenChat }) => {
 
   // state cho sidebar database
   const [showDbSidebar, setShowDbSidebar] = useState(false)
+
+  const handleLogout = useCallback(() => {
+    setIsUserMenuOpen(false)
+    setShowDbSidebar(false)
+    setVisible(false)
+    try {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY)
+      window.localStorage.removeItem(AUTH_USER_KEY)
+    } catch (storageError) {
+      // ignore storage issues
+    }
+    navigate('/home', { replace: true })
+  }, [navigate])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -151,8 +169,10 @@ const AppHeader = ({ onOpenChat }) => {
     }
   }
 
-  const handleDashboardClick = async (e) => {
-    e.preventDefault()
+  const handleDashboardClick = async (event) => {
+    if (event) {
+      event.preventDefault()
+    }
     setIsUserMenuOpen(false)
     setLoaded(false)
     await fetchDatabases()
@@ -170,39 +190,50 @@ const AppHeader = ({ onOpenChat }) => {
       <CContainer fluid className="d-flex align-items-center justify-content-between">
         <CHeaderNav className="d-none d-md-flex align-items-center gap-4">
           <CNavItem>
-            <CButton type="button" className="pill-button" onClick={handleDashboardClick}>
-              Databases
+            <CButton
+              type="button"
+              className="pill-button"
+              onClick={isUserPage ? () => {
+                setIsUserMenuOpen(false)
+                navigate('/dashboard')
+              } : handleDashboardClick}
+            >
+              {isUserPage ? 'Dashboard' : 'Databases'}
             </CButton>
           </CNavItem>
 
-          <CNavItem className="d-flex align-items-center">
-            <button
-              type="button"
-              className="upload-button"
-              onClick={() => setVisible(true)}
-              title="Upload File"
-            >
-              <span className="upload-button__icon" aria-hidden="true">+</span>
-              <span className="upload-button__label">Upload</span>
-            </button>
-          </CNavItem>
+          {!isUserPage ? (
+            <CNavItem className="d-flex align-items-center">
+              <button
+                type="button"
+                className="upload-button"
+                onClick={() => setVisible(true)}
+                title="Upload File"
+              >
+                <span className="upload-button__icon" aria-hidden="true">+</span>
+                <span className="upload-button__label">Upload</span>
+              </button>
+            </CNavItem>
+          ) : null}
         </CHeaderNav>
 
         {/* Right side: Chatbot */}
         <CHeaderNav className="d-flex align-items-center gap-3">
-          <CNavItem>
-            <CButton
-              type="button"
-              className="pill-button"
-              onClick={(e) => {
-                e.preventDefault()
-                setIsUserMenuOpen(false)
-                onOpenChat && onOpenChat()
-              }}
-            >
-              Ask Procyon
-            </CButton>
-          </CNavItem>
+          {!isUserPage ? (
+            <CNavItem>
+              <CButton
+                type="button"
+                className="pill-button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setIsUserMenuOpen(false)
+                  onOpenChat && onOpenChat()
+                }}
+              >
+                Ask Procyon
+              </CButton>
+            </CNavItem>
+          ) : null}
           <CNavItem>
             <div className="users-avatar__wrapper" ref={userMenuRef}>
               <CNavLink
@@ -224,7 +255,7 @@ const AppHeader = ({ onOpenChat }) => {
                   <button type="button" className="users-menu__item" onClick={() => { setIsUserMenuOpen(false); navigate('/settings') }}>
                     Account settings
                   </button>
-                  <button type="button" className="users-menu__item" onClick={() => { setIsUserMenuOpen(false); navigate('/home') }}>
+                  <button type="button" className="users-menu__item" onClick={handleLogout}>
                     Log out
                   </button>
                 </div>
@@ -340,3 +371,4 @@ const AppHeader = ({ onOpenChat }) => {
 }
 
 export default AppHeader
+

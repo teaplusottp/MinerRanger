@@ -78,9 +78,178 @@ router.get("/dashboard", protect, async (req, res) => {
   });
 });
 
+router.patch("/profile", protect, async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      telNumber,
+      gender,
+      username,
+      currentPassword,
+      confirmPassword,
+      newPassword,
+      confirmNewPassword,
+    } = req.body;
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const normalizeValue = (value) => {
+      if (value === undefined || value === null) {
+        return "";
+      }
+      return String(value).trim();
+    };
+
+    const normalizePassword = (value) => {
+      if (value === undefined || value === null) {
+        return "";
+      }
+      return String(value);
+    };
+
+    let hasProfileChanges = false;
+    let passwordChanged = false;
+
+    if (typeof username !== "undefined") {
+      const sanitizedUsername = normalizeValue(username);
+
+      if (!sanitizedUsername) {
+        return res.status(400).json({ message: "Username cannot be empty" });
+      }
+
+      if (sanitizedUsername !== user.username) {
+        const usernameExists = await User.findOne({ username: sanitizedUsername });
+        if (usernameExists && usernameExists._id.toString() !== user._id.toString()) {
+          return res.status(400).json({ message: "Username already taken" });
+        }
+
+        user.username = sanitizedUsername;
+        hasProfileChanges = true;
+      }
+    }
+
+    const passwordFields = [
+      currentPassword,
+      confirmPassword,
+      newPassword,
+      confirmNewPassword,
+    ];
+
+    const wantsPasswordChange = passwordFields.some(
+      (field) => typeof field !== "undefined"
+    );
+
+    if (wantsPasswordChange) {
+      const current = normalizePassword(currentPassword);
+      const confirmCurrent = normalizePassword(confirmPassword);
+      const nextPassword = normalizePassword(newPassword);
+      const confirmNextPassword = normalizePassword(confirmNewPassword);
+
+      if (
+        !current.trim() ||
+        !confirmCurrent.trim() ||
+        !nextPassword.trim() ||
+        !confirmNextPassword.trim()
+      ) {
+        return res.status(400).json({ message: "Please fill in all password fields." });
+      }
+
+      if (current !== confirmCurrent) {
+        return res
+          .status(400)
+          .json({ message: "Current password confirmation does not match." });
+      }
+
+      if (nextPassword !== confirmNextPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password confirmation does not match." });
+      }
+
+      if (current === nextPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password must be different from current password." });
+      }
+
+      const isCurrentValid = await user.matchPassword(current);
+
+      if (!isCurrentValid) {
+        return res.status(400).json({ message: "Current password is incorrect." });
+      }
+
+      const isReusingPassword = await user.matchPassword(nextPassword);
+      if (isReusingPassword) {
+        return res
+          .status(400)
+          .json({ message: "New password must be different from current password." });
+      }
+
+      user.password = nextPassword;
+      user.markModified("password");
+      passwordChanged = true;
+    }
+
+    const applyUpdate = (field, rawValue) => {
+      if (typeof rawValue === "undefined") {
+        return;
+      }
+      const nextValue = normalizeValue(rawValue);
+      if (user[field] !== nextValue) {
+        user[field] = nextValue;
+        hasProfileChanges = true;
+      }
+    };
+
+    applyUpdate("firstName", firstName);
+    applyUpdate("lastName", lastName);
+    applyUpdate("telNumber", telNumber);
+    applyUpdate("gender", gender);
+
+    if (!hasProfileChanges && !passwordChanged) {
+      return res.json({
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        telNumber: user.telNumber,
+        gender: user.gender,
+        createdAt: user.createdAt,
+        passwordChanged: false,
+      });
+    }
+
+    const updatedUser = await user.save();
+
+    return res.json({
+      id: updatedUser._id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      telNumber: updatedUser.telNumber,
+      gender: updatedUser.gender,
+      createdAt: updatedUser.createdAt,
+      passwordChanged,
+    });
+  } catch (err) {
+    console.error("Failed to update profile:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
 export default router;
+
+
+

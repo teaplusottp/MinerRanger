@@ -2,14 +2,14 @@ import axios from 'axios'
 
 const DEFAULT_BASE_URL = 'http://localhost:8080/api/users'
 
-const resolveBaseUrl = () => {
+export const resolveAuthBaseUrl = () => {
   const fromEnv = import.meta.env?.VITE_AUTH_API_BASE_URL
   const base = fromEnv && typeof fromEnv === 'string' && fromEnv.trim().length ? fromEnv.trim() : DEFAULT_BASE_URL
   return base.endsWith('/') ? base.slice(0, -1) : base
 }
 
 const authClient = axios.create({
-  baseURL: resolveBaseUrl(),
+  baseURL: resolveAuthBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
