@@ -1,30 +1,205 @@
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './User.scss'
 import avatarImage from '../../../assets/images/avatars/7.jpg'
+import { extractErrorMessage } from '../../../services/authService'
+import { getUserProfile, updateUserProfile } from '../../../services/userService'
+
+const AUTH_TOKEN_KEY = 'minerranger.authToken'
+const AUTH_USER_KEY = 'minerranger.user'
+
+const initialFormState = {
+  firstName: '',
+  lastName: '',
+  username: '',
+  telNumber: '',
+  gender: '',
+}
+
+const normalizeValue = (value) => {
+  if (value === undefined || value === null) {
+    return ''
+  }
+  return String(value).trim()
+}
+
+const formatGender = (value) => {
+  const normalized = normalizeValue(value).toLowerCase()
+  switch (normalized) {
+    case 'female':
+      return 'Female'
+    case 'male':
+      return 'Male'
+    case 'nonbinary':
+      return 'Non-binary'
+    case 'na':
+      return 'Prefer not to say'
+    default:
+      return normalizeValue(value)
+  }
+}
 
 const UserPage = () => {
-  const profile = {
+  const navigate = useNavigate()
+  const [authToken, setAuthToken] = useState('')
+  const [formState, setFormState] = useState(initialFormState)
+  const [profileData, setProfileData] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [statusMessage, setStatusMessage] = useState('')
+
+  const handleUnauthorized = useCallback(() => {
+    try {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY)
+      window.localStorage.removeItem(AUTH_USER_KEY)
+    } catch (storageError) {
+      // ignore storage access issues
+    }
+    navigate('/login', { replace: true })
+  }, [navigate])
+
+  const loadProfile = useCallback(async () => {
+    let token = null
+    try {
+      token = window.localStorage.getItem(AUTH_TOKEN_KEY)
+    } catch (storageError) {
+      token = null
+    }
+
+    if (!token) {
+      setErrorMessage('Authentication required. Please log in again.')
+      setIsLoading(false)
+      handleUnauthorized()
+      return
+    }
+
+    setAuthToken(token)
+    setIsLoading(true)
+    setErrorMessage('')
+    setStatusMessage('')
+
+    try {
+      const data = await getUserProfile(token)
+      setProfileData(data)
+      setFormState({
+        firstName: data.firstName ?? '',
+        lastName: data.lastName ?? '',
+        username: data.username ?? '',
+        telNumber: data.telNumber ?? '',
+        gender: data.gender ?? '',
+      })
+    } catch (error) {
+      const message = extractErrorMessage(error, 'Unable to load profile right now.')
+      setProfileData(null)
+      setErrorMessage(message)
+      if (error?.response?.status === 401) {
+        handleUnauthorized()
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [handleUnauthorized])
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target
+    setFormState((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSaveProfile = async () => {
+    setErrorMessage('')
+    setStatusMessage('')
+
+    if (!authToken) {
+      setErrorMessage('Authentication required. Please log in again.')
+      handleUnauthorized()
+      return
+    }
+
+    if (!profileData) {
+      setErrorMessage('Profile data not loaded yet.')
+      return
+    }
+
+    const sanitizedUsername = normalizeValue(formState.username)
+    if (!sanitizedUsername) {
+      setErrorMessage('Username cannot be empty')
+      return
+    }
+
+    const nextValues = {
+      firstName: normalizeValue(formState.firstName),
+      lastName: normalizeValue(formState.lastName),
+      telNumber: normalizeValue(formState.telNumber),
+      gender: normalizeValue(formState.gender),
+      username: sanitizedUsername,
+    }
+
+    const payload = {}
+    Object.entries(nextValues).forEach(([key, value]) => {
+      const previous = normalizeValue(profileData?.[key])
+      if (value !== previous) {
+        payload[key] = value
+      }
+    })
+
+    if (!Object.keys(payload).length) {
+      setStatusMessage('No changes to save.')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const updated = await updateUserProfile(authToken, payload)
+      setProfileData(updated)
+      setFormState({
+        firstName: updated.firstName ?? '',
+        lastName: updated.lastName ?? '',
+        username: updated.username ?? '',
+        telNumber: updated.telNumber ?? '',
+        gender: updated.gender ?? '',
+      })
+      setStatusMessage('Profile updated successfully.')
+      try {
+        const storedUser = {
+          id: updated.id,
+          email: updated.email,
+          username: updated.username,
+        }
+        window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(storedUser))
+      } catch (storageError) {
+        // ignore storage access issues
+      }
+    } catch (error) {
+      const message = extractErrorMessage(error, 'Unable to update profile right now.')
+      setErrorMessage(message)
+      if (error?.response?.status === 401) {
+        handleUnauthorized()
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const genderDisplay = formatGender(profileData?.gender)
+
+  const displayProfile = {
     avatar: avatarImage,
-    username: '@User-Name',
-    email: 'user@email.com',
-    name: 'Name, Last Name',
-    phone: '+51 966 696 123',
-    gender: 'Female',
+    username: profileData?.username ? `@${profileData.username}` : '@User-Name',
+    email: profileData?.email || 'user@email.com',
+    name:
+      [profileData?.firstName, profileData?.lastName]
+        .filter((part) => normalizeValue(part))
+        .join(' ') || 'Name, Last Name',
+    phone: profileData?.telNumber || 'Phone not provided',
+    gender: genderDisplay || 'Not specified',
   }
 
-  const personalDetails = {
-    firstName: 'Pepito Rodrick',
-    lastName: 'Coronel Sifuentes',
-    email: 'pepito.c.sifuentes@uni.pe',
-    telCountryCode: '+51',
-    telNumber: '969 123 456',
-    gender: 'female',
-  }
-
-  const metrics = [
-    { label: 'Day started', value: '1', tone: 'red' },
-    { label: 'Dataset uploaded', value: '17', tone: 'green' },
-  ]
+  const isFormDisabled = isLoading || isSaving
 
   return (
     <div className="user-page">
@@ -32,13 +207,9 @@ const UserPage = () => {
       <div className="user-page__layout">
         <div>
           <article className="user-card">
-            <img
-              src={profile.avatar}
-              alt="User avatar"
-              className="user-card__avatar"
-            />
-            <div className="user-card__username">{profile.username}</div>
-            <div className="user-card__email">{profile.email}</div>
+            <img src={displayProfile.avatar} alt="User avatar" className="user-card__avatar" />
+            <div className="user-card__username">{displayProfile.username}</div>
+            <div className="user-card__email">{displayProfile.email}</div>
           </article>
 
           <article className="user-info">
@@ -46,19 +217,19 @@ const UserPage = () => {
             <div className="user-info__list">
               <div className="user-info__item">
                 <span>Name:</span>
-                <span>{profile.name}</span>
+                <span>{displayProfile.name}</span>
               </div>
               <div className="user-info__item">
                 <span>Email:</span>
-                <span>{profile.email}</span>
+                <span>{displayProfile.email}</span>
               </div>
               <div className="user-info__item">
                 <span>Tel:</span>
-                <span>{profile.phone}</span>
+                <span>{displayProfile.phone}</span>
               </div>
               <div className="user-info__item">
                 <span>Gender:</span>
-                <span>{profile.gender}</span>
+                <span>{displayProfile.gender}</span>
               </div>
             </div>
           </article>
@@ -76,9 +247,12 @@ const UserPage = () => {
                 </label>
                 <input
                   id="firstName-input"
+                  name="firstName"
                   className="profile-settings__input"
-                  defaultValue={personalDetails.firstName}
+                  value={formState.firstName}
+                  onChange={handleInputChange}
                   placeholder="Enter your first name"
+                  disabled={isFormDisabled}
                 />
               </div>
               <div className="profile-settings__field">
@@ -87,9 +261,12 @@ const UserPage = () => {
                 </label>
                 <input
                   id="lastName-input"
+                  name="lastName"
                   className="profile-settings__input"
-                  defaultValue={personalDetails.lastName}
+                  value={formState.lastName}
+                  onChange={handleInputChange}
                   placeholder="Enter your last name"
+                  disabled={isFormDisabled}
                 />
               </div>
               <div className="profile-settings__field">
@@ -97,31 +274,28 @@ const UserPage = () => {
                   Username
                 </label>
                 <input
-                  id="email-input"
-                  type="username"
+                  id="username-input"
+                  name="username"
                   className="profile-settings__input"
-                  defaultValue={personalDetails.username}
+                  value={formState.username}
+                  onChange={handleInputChange}
                   placeholder="LionelRonaldo"
+                  disabled={isFormDisabled}
                 />
               </div>
               <div className="profile-settings__field">
                 <label className="profile-settings__label" htmlFor="tel-input">
                   Tel - Number
                 </label>
-                <div className="profile-settings__combo">
-                  <input
-                    id="tel-country-input"
-                    className="profile-settings__input profile-settings__input--small"
-                    defaultValue={personalDetails.telCountryCode}
-                    placeholder="Code"
-                  />
-                  <input
-                    id="tel-input"
-                    className="profile-settings__input profile-settings__input--full"
-                    defaultValue={personalDetails.telNumber}
-                    placeholder="Phone number"
-                  />
-                </div>
+                <input
+                  id="tel-input"
+                  name="telNumber"
+                  className="profile-settings__input"
+                  value={formState.telNumber}
+                  onChange={handleInputChange}
+                  placeholder="Phone number"
+                  disabled={isFormDisabled}
+                />
               </div>
               <div className="profile-settings__field profile-settings__field--full">
                 <label className="profile-settings__label" htmlFor="gender-select">
@@ -129,8 +303,11 @@ const UserPage = () => {
                 </label>
                 <select
                   id="gender-select"
+                  name="gender"
                   className="profile-settings__select"
-                  defaultValue={personalDetails.gender}
+                  value={formState.gender}
+                  onChange={handleInputChange}
+                  disabled={isFormDisabled}
                 >
                   <option value="" disabled>
                     Select gender
@@ -143,10 +320,17 @@ const UserPage = () => {
               </div>
             </div>
             <div className="profile-settings__actions">
-              <button type="button" className="profile-settings__button">
-                Save changes
+              <button
+                type="button"
+                className="profile-settings__button"
+                onClick={handleSaveProfile}
+                disabled={isFormDisabled}
+              >
+                {isSaving ? 'Saving...' : 'Save changes'}
               </button>
             </div>
+            {errorMessage ? <div className="profile-settings__error">{errorMessage}</div> : null}
+            {statusMessage ? <div className="profile-settings__status">{statusMessage}</div> : null}
           </section>
 
           <section className="profile-settings__section">
@@ -160,7 +344,8 @@ const UserPage = () => {
                   id="current-password-input"
                   type="password"
                   className="profile-settings__input"
-                  placeholder="Put your password..."
+                  placeholder="Put your current password..."
+                  disabled
                 />
               </div>
               <div className="profile-settings__field">
@@ -171,7 +356,8 @@ const UserPage = () => {
                   id="confirm-password-input"
                   type="password"
                   className="profile-settings__input"
-                  placeholder="Confirm password..."
+                  placeholder="Confirm current password..."
+                  disabled
                 />
               </div>
               <div className="profile-settings__field">
@@ -183,6 +369,7 @@ const UserPage = () => {
                   type="password"
                   className="profile-settings__input"
                   placeholder="Put your new password..."
+                  disabled
                 />
               </div>
               <div className="profile-settings__field">
@@ -194,14 +381,15 @@ const UserPage = () => {
                   type="password"
                   className="profile-settings__input"
                   placeholder="Confirm new password..."
+                  disabled
                 />
               </div>
             </div>
             <div className="profile-settings__actions">
-              <button type="button" className="profile-settings__button">
+              <button type="button" className="profile-settings__button" disabled>
                 Save changes
               </button>
-              <button type="button" className="profile-settings__password-help">
+              <button type="button" className="profile-settings__password-help" disabled>
                 Forgot your password?
               </button>
             </div>
@@ -209,12 +397,13 @@ const UserPage = () => {
         </article>
 
         <aside className="user-metric-stack">
-          {metrics.map((metric) => (
+          {[
+            { label: 'Day started', value: '1', tone: 'red' },
+            { label: 'Dataset uploaded', value: '17', tone: 'green' },
+          ].map((metric) => (
             <div key={metric.label} className="user-metric-card">
               <div className="user-metric-card__label">{metric.label}</div>
-              <div
-                className={`user-metric-card__value user-metric-card__value--${metric.tone}`}
-              >
+              <div className={`user-metric-card__value user-metric-card__value--${metric.tone}`}>
                 {metric.value}
               </div>
             </div>
