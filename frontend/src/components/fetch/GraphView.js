@@ -478,7 +478,7 @@ function GraphView() {
 
     setReport(null)
 
-    fetch(http://localhost:8000/graph?db=, {
+    fetch("http://localhost:8000/graph?db=", {
       headers: {
         Authorization: Bearer ,
       },
