@@ -17,6 +17,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mime-types": "^2.1.35",
     "mongoose": "^8.18.1",
     "multer": "^2.0.0",
     "nodemailer": "^7.0.6"

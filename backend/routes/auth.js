@@ -3,7 +3,9 @@ import multer from "multer";
 import User from "../models/User.js";
 import { protect } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
-import { createAvatarObjectName, uploadAvatarBuffer } from "../services/gcsUploader.js";
+import fs from "fs";
+import path from "path";
+import { createAvatarObjectName, createDataObjectName, uploadAvatarBuffer, uploadFileFromPath } from "../services/gcsUploader.js";
 
 const router = express.Router();
 
@@ -33,6 +35,7 @@ const mapUserProfile = (user) => ({
   gender: user.gender,
   avatar: user.avatar,
   createdAt: user.createdAt,
+  dataFolders: user.dataFolders || [],
 });
 
 // Register
@@ -291,6 +294,114 @@ router.patch("/profile", protect, async (req, res) => {
   } catch (err) {
     console.error("Failed to update profile:", err);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+const SUPPORTED_DATA_TYPES = new Set([
+  "description",
+  "bpmn",
+  "report",
+  "log_raw",
+  "log_cleaned",
+  "chart_dotted",
+  "chart_throughput_time_density",
+  "chart_unwanted_activity_stats",
+]);
+
+const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+const sanitizeDisplayName = (value) => {
+  const trimmed = String(value || '').trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  return `Dataset ${new Date().toISOString()}`;
+};
+
+router.get('/data-folders', protect, async (req, res) => {
+  try {
+    const folders = ensureArray(req.user.dataFolders)
+      .map((folder) => ({
+        id: folder.id,
+        displayName: folder.displayName,
+        uploadedAt: folder.uploadedAt,
+        files: ensureArray(folder.files),
+      }))
+      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+    return res.json({ folders });
+  } catch (err) {
+    console.error('Failed to list data folders:', err);
+    return res.status(500).json({ message: 'Failed to load data folders.' });
+  }
+});
+
+router.get('/data-folders/:folderId', protect, async (req, res) => {
+  try {
+    const target = ensureArray(req.user.dataFolders).find(
+      (folder) => folder.id === req.params.folderId,
+    );
+    if (!target) {
+      return res.status(404).json({ message: 'Data folder not found' });
+    }
+    return res.json({ folder: target });
+  } catch (err) {
+    console.error('Failed to load data folder:', err);
+    return res.status(500).json({ message: 'Failed to load data folder.' });
+  }
+});
+
+router.post('/data-folders', protect, async (req, res) => {
+  const { jobId, displayName, uploadedAt, files } = req.body || {};
+
+  const normalizedFiles = ensureArray(files);
+  if (!normalizedFiles.length) {
+    return res.status(400).json({ message: 'At least one file is required.' });
+  }
+
+  try {
+    const uploadedFiles = [];
+
+    for (const file of normalizedFiles) {
+      const { type, name, path: localPath } = file || {};
+      if (!type || !SUPPORTED_DATA_TYPES.has(type)) {
+        return res.status(400).json({ message: `Unsupported file type: ${type}` });
+      }
+      if (!localPath) {
+        return res.status(400).json({ message: 'Missing localPath for uploaded file.' });
+      }
+      const ext = path.extname(name || localPath) || '';
+      const destination = createDataObjectName(type, ext);
+      const publicUrl = await uploadFileFromPath({
+        localPath,
+        destination,
+      });
+      uploadedFiles.push({
+        name: name || path.basename(localPath),
+        type,
+        url: publicUrl,
+      });
+    }
+
+    const folderRecord = {
+      id:
+        jobId ||
+        (typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : Date.now().toString(36)),
+      displayName: sanitizeDisplayName(displayName),
+      uploadedAt: uploadedAt ? new Date(uploadedAt) : new Date(),
+      files: uploadedFiles,
+    };
+
+    req.user.dataFolders = ensureArray(req.user.dataFolders);
+    req.user.dataFolders.push(folderRecord);
+    await req.user.save();
+
+    return res.json({ folder: folderRecord });
+  } catch (err) {
+    console.error('Failed to save data folder:', err);
+    return res.status(500).json({ message: 'Failed to save data folder.' });
   }
 });
 

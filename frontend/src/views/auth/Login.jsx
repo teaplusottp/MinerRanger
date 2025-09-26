@@ -155,7 +155,7 @@ const Login = () => {
               Password
             </label>
             <button type="button" className={styles.link} onClick={handleForgotPassword}>
-              forgot password
+              Forgot password?
             </button>
           </div>
           <input

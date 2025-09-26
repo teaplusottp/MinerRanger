@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+﻿import React, { useEffect, useRef, useState, useCallback } from 'react'
 import {
   CHeader,
   CContainer,
@@ -68,7 +68,7 @@ const AppHeader = ({ onOpenChat }) => {
   const [visible, setVisible] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [textValue, setTextValue] = useState("")
-  const [logMessages, setLogMessages] = useState([])   // 👈 log state
+  const [logMessages, setLogMessages] = useState([])   // ðŸ‘ˆ log state
   const logBoxRef = useRef(null)
 
   // state cho sidebar database
@@ -112,7 +112,7 @@ const AppHeader = ({ onOpenChat }) => {
     }
   }, [isUserMenuOpen])
 
-  // auto scroll xuống cuối khi có log mới
+  // auto scroll xuá»‘ng cuá»‘i khi cÃ³ log má»›i
   useEffect(() => {
     if (logBoxRef.current) {
       logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
@@ -154,13 +154,25 @@ const AppHeader = ({ onOpenChat }) => {
 
 
   const fetchDatabases = async () => {
+    const token = window.localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) {
+      setDbList([])
+      setLoaded(true)
+      return
+    }
+
     try {
-      const res = await fetch("http://127.0.0.1:8000/databases")
+      const res = await fetch("http://127.0.0.1:8000/databases", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       const data = await res.json()
-      setDbList(data.databases || [])
+      const folders = Array.isArray(data.databases) ? data.databases : []
+      setDbList(folders)
       setLoaded(true)
     } catch (err) {
-      console.error("Lỗi fetch databases:", err)
+      console.error("L?i fetch databases:", err)
       setDbList([])
       setLoaded(true)
     }
@@ -172,29 +184,39 @@ const AppHeader = ({ onOpenChat }) => {
 
   const handleSubmit = async () => {
     if (!selectedFile) {
-      alert("⚠️ Vui lòng chọn file!")
+      alert('Vui lòng chọn file!')
       return
     }
 
     const formData = new FormData()
-    formData.append("file", selectedFile)
+    formData.append('file', selectedFile)
     if (textValue.trim()) {
-      formData.append("note", textValue)
+      formData.append('note', textValue)
     }
 
     setLoading(true)
-    setLogMessages([]) // reset log cũ
+    setLogMessages([]) // reset log
+
+    const token = window.localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) {
+      alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
+      setLoading(false)
+      return
+    }
 
     try {
       // 1. Gửi file trước
-      const res = await fetch("http://127.0.0.1:8000/upload", {
-        method: "POST",
+      const res = await fetch('http://127.0.0.1:8000/upload', {
+        method: 'POST',
         body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
       const data = await res.json()
 
       if (!res.ok) {
-        alert("❌ Upload lỗi: " + (data.error || "Không rõ"))
+        alert('Upload lỗi: ' + (data.error || 'Không rõ nguyên nhân'))
         setLoading(false)
         return
       }
@@ -204,33 +226,50 @@ const AppHeader = ({ onOpenChat }) => {
       const ws = new WebSocket(`ws://127.0.0.1:8000/ws/upload?folder=${folder}`)
 
       ws.onopen = () => {
-        setLogMessages((prev) => [...prev, "🔗 WebSocket connected..."])
+        setLogMessages((prev) => [...prev, 'WebSocket connected...'])
       }
 
       ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data)
+          if (payload?.type === 'dataset_saved') {
+            setLogMessages((prev) => [...prev, 'Dataset đã lưu lên GCS'])
+            fetchDatabases()
+            if (payload?.data?.id) {
+              setSelectedDb(payload.data.id)
+            }
+            return
+          }
+          if (payload?.type === 'error') {
+            setLogMessages((prev) => [...prev, `Lỗi: ${payload.message}`])
+            setLoading(false)
+            return
+          }
+        } catch (err) {
+          // ignore JSON parse errors and fall back to raw message
+        }
         setLogMessages((prev) => [...prev, event.data])
       }
 
       ws.onerror = (err) => {
-        console.error("WS error:", err)
-        setLogMessages((prev) => [...prev, "❌ WebSocket error"])
+        console.error('WS error:', err)
+        setLogMessages((prev) => [...prev, 'WebSocket error'])
       }
 
       ws.onclose = () => {
-        setLogMessages((prev) => [...prev, "🔌 WebSocket closed"])
+        setLogMessages((prev) => [...prev, 'WebSocket closed'])
         setLoading(false)
-        // Hiển thị thông báo thành công và đóng modal
         setTimeout(() => {
-          alert("✅ Upload thành công!")
+          alert('Upload thành công!')
           setVisible(false)
           setSelectedFile(null)
-          setTextValue("")
+          setTextValue('')
           setLogMessages([])
         }, 300)
       }
     } catch (err) {
-      console.error("Lỗi upload:", err)
-      alert("❌ Không kết nối được server")
+      console.error('Lỗi upload:', err)
+      alert('Không kết nối được server')
       setLoading(false)
     }
   }
@@ -339,10 +378,10 @@ const AppHeader = ({ onOpenChat }) => {
               <div className="d-flex flex-column" style={{ minHeight: "150px" }}>
                 <div className="d-flex align-items-center mb-2">
                   <CSpinner color="primary" />
-                  <span className="ms-2">Đang xử lý file, vui lòng đợi...</span>
+                  <span className="ms-2">Äang xá»­ lÃ½ file, vui lÃ²ng Ä‘á»£i...</span>
                 </div>
 
-                {/* Ô log có nội dung */}
+                {/* Ã” log cÃ³ ná»™i dung */}
                 <div
                   ref={logBoxRef}
                   style={{
@@ -377,11 +416,11 @@ const AppHeader = ({ onOpenChat }) => {
                   style={{ display: "none" }}
                   onChange={handleFileChange}
                 />
-                {selectedFile && <p className="mt-2">📄 {selectedFile.name}</p>}
+                {selectedFile && <p className="mt-2">ðŸ“„ {selectedFile.name}</p>}
 
                 <CFormTextarea
                   rows={6}
-                  placeholder="Nhập ghi chú..."
+                  placeholder="Nháº­p ghi chÃº..."
                   className="mt-3"
                   value={textValue}
                   onChange={(e) => setTextValue(e.target.value)}
@@ -407,28 +446,28 @@ const AppHeader = ({ onOpenChat }) => {
           {loaded ? (
             dbList.length > 0 ? (
               <CListGroup>
-                {dbList.map((db, idx) => (
+                {dbList.map((folder) => (
                   <CListGroupItem
-                    key={idx}
+                    key={folder.id}
                     component="button"
                     action
                     onClick={() => {
-                      setSelectedDb(db)
+                      setSelectedDb(folder.id)
                       handleCloseSidebar()
                     }}
                     style={{ cursor: 'pointer' }}
                   >
-                    {db}
+                    {folder.displayName || folder.id}
                   </CListGroupItem>
                 ))}
               </CListGroup>
             ) : (
-              <div>Không có database</div>
+              <div>KhÃ´ng cÃ³ database</div>
             )
           ) : (
             <div className="d-flex align-items-center">
               <CSpinner size="sm" className="me-2" />
-              <span>Đang tải databases...</span>
+              <span>Äang táº£i databases...</span>
             </div>
           )}
         </COffcanvasBody>

@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import { CSpinner } from "@coreui/react";
 import { useDb } from '../../context/DbContext';
+const AUTH_TOKEN_KEY = 'minerranger.authToken';
 /* ======================= Helpers & Styling ======================= */
 
-// Ghép URL ảnh (nếu server trả filename) → /static/<file>
+// GhÃ©p URL áº£nh (náº¿u server tráº£ filename) â†’ /static/<file>
 const toStaticUrl = (u) => {
   const s = String(u || "");
   if (!s) return s;
@@ -27,7 +28,7 @@ const splitInsight = (insight, accent = "#ff6f61") =>
               borderRadius: "6px",
             }}
           >
-            • {line}
+            â€¢ {line}
           </div>
         ))
     : null;
@@ -44,7 +45,7 @@ const parseEdgeTuple = (edgeStr) => {
   return m ? [m[1], m[2]] : [];
 };
 
-// Kiểu matrix: [ [ [from, to], value ], ... ]
+// Kiá»ƒu matrix: [ [ [from, to], value ], ... ]
 const isEdgeMatrixArray = (data) => {
   if (!Array.isArray(data) || data.length === 0) return false;
   const first = data[0];
@@ -58,7 +59,7 @@ const isEdgeMatrixArray = (data) => {
   );
 };
 
-// Kiểu unwanted stats: [{ activity_name|name|activity, count, percentage }, ...]
+// Kiá»ƒu unwanted stats: [{ activity_name|name|activity, count, percentage }, ...]
 const isUnwantedStatArray = (data) => {
   if (!Array.isArray(data) || data.length === 0) return false;
   const f = data[0];
@@ -71,13 +72,13 @@ const isUnwantedStatArray = (data) => {
   );
 };
 
-// Màu chủ đạo theo group
+// MÃ u chá»§ Ä‘áº¡o theo group
 const groupAccents = {
   basic: "#42a5f5",       // xanh lam
-  process: "#ff6f61",     // đỏ cam
-  performance: "#7e57c2", // tím
-  conformance: "#26a69a", // xanh ngọc
-  enhancement: "#ffa726", // cam vàng
+  process: "#ff6f61",     // Ä‘á» cam
+  performance: "#7e57c2", // tÃ­m
+  conformance: "#26a69a", // xanh ngá»c
+  enhancement: "#ffa726", // cam vÃ ng
 };
 
 /* ======================= Generic Pieces ======================= */
@@ -111,7 +112,7 @@ const Block = ({ children }) => (
   </div>
 );
 
-// Thẻ số: dùng accent (nhạt hơn title), insight còn nhạt hơn nữa
+// Tháº» sá»‘: dÃ¹ng accent (nháº¡t hÆ¡n title), insight cÃ²n nháº¡t hÆ¡n ná»¯a
 const MetricCards = ({ entries, accent }) => {
   if (!entries?.length) return null;
   return (
@@ -137,7 +138,7 @@ const MetricCards = ({ entries, accent }) => {
   );
 };
 
-// Bar ngang (mỗi cột 1 màu trơn = accent của group)
+// Bar ngang (má»—i cá»™t 1 mÃ u trÆ¡n = accent cá»§a group)
 const HorizontalBars = ({ chartKey, chart, accent }) => {
   const labels = chart?.data?.[0] || [];
   const values = chart?.data?.[1] || [];
@@ -199,7 +200,7 @@ const HorizontalBars = ({ chartKey, chart, accent }) => {
 
 /* ======================= Special Renderers ======================= */
 
-// Bảng ma trận (dùng accent của group cho viền/đầu bảng/ô có dữ liệu)
+// Báº£ng ma tráº­n (dÃ¹ng accent cá»§a group cho viá»n/Ä‘áº§u báº£ng/Ã´ cÃ³ dá»¯ liá»‡u)
 const EdgeMatrix = ({ title, edges, accent }) => {
   const nodes = useMemo(() => Array.from(new Set(edges.flatMap(([pair]) => pair))), [edges]);
   const matrixData = useMemo(
@@ -250,13 +251,13 @@ const EdgeMatrix = ({ title, edges, accent }) => {
   );
 };
 
-// Bar dọc “unwanted” (giữ đúng 2 màu cố định cho 2 loại cột, có trục + ticks + số)
+// Bar dá»c â€œunwantedâ€ (giá»¯ Ä‘Ãºng 2 mÃ u cá»‘ Ä‘á»‹nh cho 2 loáº¡i cá»™t, cÃ³ trá»¥c + ticks + sá»‘)
 const UnwantedComboChart = ({ title, rows, accent }) => {
   const actLabel = (d) => d.activity_name ?? d.activity ?? d.name ?? "";
   const rawMax = Math.max(...rows.map((d) => d.count || 0), 1);
   const maxCount = Math.ceil(rawMax / 50) * 50;
 
-  // phần trăm có thể 0–1 hoặc 0–100
+  // pháº§n trÄƒm cÃ³ thá»ƒ 0â€“1 hoáº·c 0â€“100
   const pctFraction = (p) => {
     if (p == null) return 0;
     const v = Number(p);
@@ -269,7 +270,7 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
   const countTicks = Array.from({ length: 6 }, (_, i) => Math.round((i * maxCount) / 5));
   const pctTicks = [0, 20, 40, 60, 80, 100];
 
-  // 2 màu cố định toàn dashboard
+  // 2 mÃ u cá»‘ Ä‘á»‹nh toÃ n dashboard
   const COUNT_COLOR = "#42a5f5";
   const PCT_COLOR = "#ef5350";
 
@@ -317,7 +318,7 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
           })}
         </div>
 
-        {/* Trục Count (trái) */}
+        {/* Trá»¥c Count (trÃ¡i) */}
         <div
           style={{
             position: "absolute",
@@ -339,7 +340,7 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
           ))}
         </div>
 
-        {/* Trục Percentage (phải) */}
+        {/* Trá»¥c Percentage (pháº£i) */}
         <div
           style={{
             position: "absolute",
@@ -464,16 +465,31 @@ function GraphView() {
  const { selectedDb } = useDb()
 
   useEffect(() => {
-    if (!selectedDb) return   // chưa chọn DB thì bỏ qua
-setReport(null);
-    fetch(`http://localhost:8000/graph?db=${selectedDb}`)
+    if (!selectedDb) {
+      setReport(null)
+      return
+    }
+
+    const token = window.localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) {
+      setReport(null)
+      return
+    }
+
+    setReport(null)
+
+    fetch(http://localhost:8000/graph?db=, {
+      headers: {
+        Authorization: Bearer ,
+      },
+    })
       .then((res) => res.json())
       .then((data) => setReport(data))
-      .catch((err) => console.error("Error fetching report:", err))
+      .catch((err) => console.error('Error fetching report:', err))
   }, [selectedDb])           
   
   if (!selectedDb) {
-    return <div style={{ padding: 20 }}>⚠️ Hãy chọn một database để xem báo cáo</div>
+    return <div style={{ padding: 20 }}>âš ï¸ HÃ£y chá»n má»™t database Ä‘á»ƒ xem bÃ¡o cÃ¡o</div>
   }
 
   if (!report) {
@@ -537,10 +553,10 @@ setReport(null);
     const pd = report.process_discovery;
     if (!pd || typeof pd !== "object") return null;
 
-    // card số
+    // card sá»‘
     const cards = Object.entries(pd).filter(([k, v]) => k !== "insights" && typeof v === "number");
 
-    // ảnh (nếu có các field có img_url)
+    // áº£nh (náº¿u cÃ³ cÃ¡c field cÃ³ img_url)
     const images = Object.entries(pd)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
       .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
@@ -578,7 +594,7 @@ setReport(null);
           </div>
         )}
 
-        {/* BPMN Model từ field bpmn_model (KHÔNG hardcode) */}
+        {/* BPMN Model tá»« field bpmn_model (KHÃ”NG hardcode) */}
         {pd.bpmn_model && (
           <div
             style={{
@@ -625,12 +641,12 @@ setReport(null);
       ([k, v]) => k !== "insights" && !(v && typeof v === "object") && typeof v !== "undefined"
     );
 
-    // KHÔI PHỤC 2 ẢNH (dotted_chart.png, throughput_time_density.png) — không hardcode tên
+    // KHÃ”I PHá»¤C 2 áº¢NH (dotted_chart.png, throughput_time_density.png) â€” khÃ´ng hardcode tÃªn
     const images = Object.entries(pa)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
       .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
 
-    // Bảng ma trận từ object .data đầu tiên không có img_url
+    // Báº£ng ma tráº­n tá»« object .data Ä‘áº§u tiÃªn khÃ´ng cÃ³ img_url
     const graphJsonEntry = Object.entries(pa).find(
       ([, v]) => v && typeof v === "object" && v.data && typeof v.data === "object" && !("img_url" in v)
     );

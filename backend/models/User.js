@@ -1,6 +1,29 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const dataFileSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    type: { type: String, required: true, trim: true },
+    url: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+const dataFolderSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true },
+    displayName: { type: String, required: true, trim: true },
+    uploadedAt: { type: Date, required: true, default: Date.now },
+    files: {
+      type: [dataFileSchema],
+      default: [],
+      validate: [Array.isArray, "Files must be an array"],
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -43,6 +66,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+    dataFolders: {
+      type: [dataFolderSchema],
+      default: [],
     },
   },
   { timestamps: true }

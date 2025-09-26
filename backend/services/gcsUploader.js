@@ -3,6 +3,7 @@ import { Storage } from "@google-cloud/storage";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import mime from "mime-types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,9 +28,38 @@ const storage = new Storage({
 
 const bucket = storage.bucket(bucketName);
 
+const randomId = () => {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return crypto.randomBytes(24).toString("hex");
+};
+
+const DATA_TYPE_PREFIXES = {
+  description: "data/description",
+  bpmn: "data/bpmn",
+  report: "data/report",
+  log_raw: "data/log/raw",
+  log_cleaned: "data/log/cleaned",
+  chart_dotted: "data/charts/dotted_chart",
+  chart_throughput_time_density: "data/charts/throughput_time_density",
+  chart_unwanted_activity_stats: "data/charts/unwanted_activity_stats",
+};
+
+const ensureLeadingDot = (ext = "") => {
+  if (!ext) return "";
+  return ext.startsWith(".") ? ext : `.${ext}`;
+};
+
 export const createAvatarObjectName = (userId = "user") => {
   const randomSegment = crypto.randomBytes(24).toString("hex");
   return `avatars/${userId}-${randomSegment}.png`;
+};
+
+export const createDataObjectName = (type, extension = "") => {
+  const prefix = DATA_TYPE_PREFIXES[type] || "data/others";
+  const safeExt = ensureLeadingDot(extension || "");
+  return `${prefix}/${randomId()}${safeExt}`;
 };
 
 export const uploadAvatarBuffer = async ({ buffer, destination, contentType }) => {
@@ -47,6 +77,25 @@ export const uploadAvatarBuffer = async ({ buffer, destination, contentType }) =
     },
   });
 
+  return `https://storage.googleapis.com/${bucket.name}/${destination}`;
+};
+
+export const uploadFileFromPath = async ({ localPath, destination, contentType }) => {
+  if (!localPath || !fs.existsSync(localPath)) {
+    throw new Error(`Local file not found: ${localPath}`);
+  }
+
+  const detectedType = contentType || mime.lookup(localPath) || undefined;
+
+  await bucket.upload(localPath, {
+    destination,
+    gzip: false,
+    resumable: false,
+    metadata: {
+      contentType: detectedType,
+      cacheControl: "public, max-age=31536000",
+    },
+  });
 
   return `https://storage.googleapis.com/${bucket.name}/${destination}`;
 };
