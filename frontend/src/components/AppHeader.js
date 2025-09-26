@@ -25,6 +25,31 @@ import avatarUser from '../assets/images/avatars/1.jpg'
 
 const AUTH_TOKEN_KEY = 'minerranger.authToken'
 const AUTH_USER_KEY = 'minerranger.user'
+const USER_UPDATED_EVENT = 'minerranger:user-updated'
+
+const readStoredUser = () => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  try {
+    const raw = window.localStorage.getItem(AUTH_USER_KEY)
+    if (!raw) {
+      return null
+    }
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch (error) {
+    return null
+  }
+}
+
+const resolveAvatarFromUser = (user) => {
+  if (!user || typeof user !== 'object') {
+    return ''
+  }
+  const avatar = typeof user.avatar === 'string' ? user.avatar.trim() : ''
+  return avatar
+}
 
 const AppHeader = ({ onOpenChat }) => {
   const navigate = useNavigate()
@@ -37,6 +62,7 @@ const AppHeader = ({ onOpenChat }) => {
   const fileInputRef = useRef(null)
   const userMenuRef = useRef(null)
   const [loading, setLoading] = useState(false)
+  const [currentUser, setCurrentUser] = useState(() => readStoredUser())
 
   // state cho popup upload
   const [visible, setVisible] = useState(false)
@@ -47,6 +73,10 @@ const AppHeader = ({ onOpenChat }) => {
 
   // state cho sidebar database
   const [showDbSidebar, setShowDbSidebar] = useState(false)
+  const userAvatarSrc = resolveAvatarFromUser(currentUser) || avatarUser
+  const userMenuLabel = currentUser?.username || currentUser?.email || 'Current user'
+  const userMenuAriaLabel = currentUser ? `Open menu for ${userMenuLabel}` : 'Open user menu'
+  const userAvatarAlt = currentUser ? `${userMenuLabel} avatar` : 'User avatar'
 
   const handleLogout = useCallback(() => {
     setIsUserMenuOpen(false)
@@ -55,9 +85,11 @@ const AppHeader = ({ onOpenChat }) => {
     try {
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
+      window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: null }))
     } catch (storageError) {
       // ignore storage issues
     }
+    setCurrentUser(null)
     navigate('/home', { replace: true })
   }, [navigate])
 
@@ -86,6 +118,40 @@ const AppHeader = ({ onOpenChat }) => {
       logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
     }
   }, [logMessages])
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const syncUser = () => {
+      setCurrentUser(readStoredUser())
+    }
+
+    const handleUserUpdated = (event) => {
+      if (event?.detail !== undefined) {
+        setCurrentUser(event.detail)
+      } else {
+        syncUser()
+      }
+    }
+
+    const handleStorage = (event) => {
+      if (event && event.key && event.key !== AUTH_USER_KEY) {
+        return
+      }
+      syncUser()
+    }
+
+    window.addEventListener(USER_UPDATED_EVENT, handleUserUpdated)
+    window.addEventListener('storage', handleStorage)
+    syncUser()
+
+    return () => {
+      window.removeEventListener(USER_UPDATED_EVENT, handleUserUpdated)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [])
+
 
   const fetchDatabases = async () => {
     try {
@@ -239,13 +305,14 @@ const AppHeader = ({ onOpenChat }) => {
               <CNavLink
                 href="#"
                 className="py-0 users-avatar"
-                aria-label="Team users"
+                aria-label={userMenuAriaLabel}
+                title={userMenuLabel}
                 onClick={(event) => {
                   event.preventDefault()
                   setIsUserMenuOpen((prev) => !prev)
                 }}
               >
-                <img src={avatarUser} alt="Team users" className="users-avatar__image" />
+                <img src={userAvatarSrc} alt={userAvatarAlt} className="users-avatar__image" />
               </CNavLink>
               {isUserMenuOpen ? (
                 <div className="users-menu" role="menu" aria-label="User menu">

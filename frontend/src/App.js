@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react'
+﻿import React, { Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
@@ -15,6 +15,9 @@ const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
 const Home = React.lazy(() => import('./views/home/Home'))
 const Login = React.lazy(() => import('./views/auth/Login'))
 const Register = React.lazy(() => import('./views/auth/Register'))
+const ForgotPassword = React.lazy(() => import('./views/forgot-password/ForgotPassword'))
+const OtpRequest = React.lazy(() => import('./views/forgot-password/OtpRequest'))
+const ResetPassword = React.lazy(() => import('./views/forgot-password/ResetPassword'))
 const PlaceholderPage = React.lazy(() => import('./views/marketing/PlaceholderPage'))
 
 const App = () => {
@@ -51,6 +54,9 @@ const App = () => {
               <Route path="/home" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/otp-request" element={<OtpRequest />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Route>
             <Route path="/about" element={<PlaceholderPage title="About us" />} />
             <Route path="/blog" element={<PlaceholderPage title="Blog" />} />
@@ -64,3 +70,5 @@ const App = () => {
 }
 
 export default App
+
+

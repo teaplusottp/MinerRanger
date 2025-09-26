@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from './AuthLayout'
 import styles from './AuthLayout.module.scss'
@@ -11,6 +11,7 @@ const AUTH_IMAGE_SRC = authIllustration
 const REMEMBER_EMAIL_KEY = 'minerranger.rememberEmail'
 const AUTH_TOKEN_KEY = 'minerranger.authToken'
 const AUTH_USER_KEY = 'minerranger.user'
+const USER_UPDATED_EVENT = 'minerranger:user-updated'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -41,7 +42,8 @@ const Login = () => {
 
   const handleForgotPassword = () => {
     setErrorMessage('')
-    setStatusMessage('TODO: Implement password recovery flow')
+    setStatusMessage('')
+    navigate('/forgot-password')
   }
 
   const handleProviderRedirect = () => {
@@ -58,8 +60,8 @@ const Login = () => {
       setErrorMessage('Please provide both email and password')
       return
     }
-
     setIsSubmitting(true)
+
     try {
       const payload = { email: trimmedEmail, password: formState.password }
       const data = await loginUser(payload)
@@ -74,12 +76,19 @@ const Login = () => {
           window.localStorage.setItem(AUTH_TOKEN_KEY, data.token)
         }
         if (data && (data.id || data.email || data.username)) {
-          window.localStorage.setItem(
-            AUTH_USER_KEY,
-            JSON.stringify({ id: data.id, email: data.email, username: data.username })
-          )
+          const storedUser = {
+            id: data.id ?? '',
+            email: data.email ?? '',
+            username: data.username ?? '',
+            firstName: data.firstName ?? '',
+            lastName: data.lastName ?? '',
+            avatar: data.avatar ?? '',
+          }
+          window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(storedUser))
+          window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: storedUser }))
         }
       } catch (storageError) {
+
         // ignore storage access issues
       }
 

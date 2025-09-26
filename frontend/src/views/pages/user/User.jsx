@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './User.scss'
 import avatarImage from '../../../assets/images/avatars/7.jpg'
@@ -7,6 +7,7 @@ import { getUserProfile, updateUserProfile, uploadUserAvatar } from '../../../se
 
 const AUTH_TOKEN_KEY = 'minerranger.authToken'
 const AUTH_USER_KEY = 'minerranger.user'
+const USER_UPDATED_EVENT = 'minerranger:user-updated'
 const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024
 
 const initialFormState = {
@@ -56,6 +57,7 @@ const persistUserToStorage = (profile) => {
       avatar: profile.avatar ?? '',
     }
     window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(storedUser))
+    window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: storedUser }))
   } catch (storageError) {
     // ignore storage access issues
   }
@@ -105,10 +107,22 @@ const UserPage = () => {
     try {
       window.localStorage.removeItem(AUTH_TOKEN_KEY)
       window.localStorage.removeItem(AUTH_USER_KEY)
+      window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: null }))
     } catch (storageError) {
       // ignore storage access issues
     }
     navigate('/login', { replace: true })
+  }, [navigate])
+
+  const handleForgotPassword = useCallback(() => {
+    try {
+      window.localStorage.removeItem(AUTH_TOKEN_KEY)
+      window.localStorage.removeItem(AUTH_USER_KEY)
+      window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: null }))
+    } catch (storageError) {
+      // ignore storage access issues
+    }
+    navigate('/forgot-password')
   }, [navigate])
 
   const loadProfile = useCallback(async () => {
@@ -632,4 +646,7 @@ const UserPage = () => {
 }
 
 export default UserPage
+
+
+
 
