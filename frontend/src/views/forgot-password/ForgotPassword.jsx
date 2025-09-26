@@ -1,15 +1,37 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styles from './ForgotPassword.module.scss'
 import artIllustration from '../../assets/images/team-collaboration-hero.png'
+import { requestPasswordResetOtp } from '../../services/passwordResetService'
+import { extractErrorMessage } from '../../services/authService'
 
 const ForgotPassword = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    navigate('/otp-request', { state: { email: email.trim() } })
+    const normalizedEmail = email.trim()
+
+    if (!normalizedEmail) {
+      setErrorMessage('Please enter your email address.')
+      return
+    }
+
+    setErrorMessage('')
+    setIsSubmitting(true)
+
+    try {
+      await requestPasswordResetOtp({ email: normalizedEmail })
+      navigate('/otp-request', { state: { email: normalizedEmail } })
+    } catch (error) {
+      const message = extractErrorMessage(error, 'Unable to send OTP. Please try again later.')
+      setErrorMessage(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -31,13 +53,22 @@ const ForgotPassword = () => {
                 type="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  if (errorMessage) {
+                    setErrorMessage('')
+                  }
+                }}
                 required
                 autoComplete="email"
+                disabled={isSubmitting}
               />
             </label>
-            <button type="submit" className={styles.submitButton}>
-              Submit
+            {errorMessage ? (
+              <div className={`${styles.feedback} ${styles.feedbackError}`}>{errorMessage}</div>
+            ) : null}
+            <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
           </form>
         </section>
@@ -50,3 +81,4 @@ const ForgotPassword = () => {
 }
 
 export default ForgotPassword
+

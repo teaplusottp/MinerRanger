@@ -1,17 +1,30 @@
-﻿import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import styles from './ForgotPassword.module.scss'
 import artIllustration from '../../assets/images/team-collaboration-hero.png'
+import { resetPasswordWithOtp } from '../../services/passwordResetService'
+import { extractErrorMessage } from '../../services/authService'
 
 const ResetPassword = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const emailFromState = location.state?.email ?? ''
+  const otpFromState = location.state?.otp ?? ''
+
   const [formState, setFormState] = useState({
     password: '',
     confirmPassword: '',
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const emailHeading = location.state?.email
+  useEffect(() => {
+    if (!emailFromState || !otpFromState) {
+      navigate('/forgot-password', { replace: true })
+    }
+  }, [emailFromState, navigate, otpFromState])
+
+  const emailHeading = emailFromState
   const subtitleText = emailHeading
     ? `Please enter your new password for ${emailHeading}.`
     : 'Please enter your new password.'
@@ -19,11 +32,39 @@ const ResetPassword = () => {
   const handleChange = (event) => {
     const { name, value } = event.target
     setFormState((prev) => ({ ...prev, [name]: value }))
+    if (errorMessage) {
+      setErrorMessage('')
+    }
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    navigate('/login')
+
+    const password = formState.password.trim()
+    const confirmPassword = formState.confirmPassword.trim()
+
+    if (!password || !confirmPassword) {
+      setErrorMessage('Please fill in both password fields.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Password confirmation does not match.')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage('')
+
+    try {
+      await resetPasswordWithOtp({ email: emailFromState, otp: otpFromState, password })
+      navigate('/login', { replace: true, state: { passwordReset: true } })
+    } catch (error) {
+      const message = extractErrorMessage(error, 'Unable to reset password. Please try again later.')
+      setErrorMessage(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -47,6 +88,7 @@ const ResetPassword = () => {
                 onChange={handleChange}
                 required
                 autoComplete="new-password"
+                disabled={isSubmitting}
               />
             </label>
             <label className={styles.field} htmlFor="confirm-password">
@@ -61,10 +103,14 @@ const ResetPassword = () => {
                 onChange={handleChange}
                 required
                 autoComplete="new-password"
+                disabled={isSubmitting}
               />
             </label>
-            <button type="submit" className={styles.submitButton}>
-              Submit
+            {errorMessage ? (
+              <div className={`${styles.feedback} ${styles.feedbackError}`}>{errorMessage}</div>
+            ) : null}
+            <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
           </form>
         </section>
@@ -77,3 +123,4 @@ const ResetPassword = () => {
 }
 
 export default ResetPassword
+

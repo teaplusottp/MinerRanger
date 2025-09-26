@@ -618,7 +618,11 @@ const UserPage = () => {
               >
                 {isPasswordSaving ? 'Saving...' : 'Save changes'}
               </button>
-              <button type="button" className="profile-settings__password-help" disabled>
+              <button
+                type="button"
+                className="profile-settings__password-help"
+                onClick={handleForgotPassword}
+              >
                 Forgot your password?
               </button>
             </div>
@@ -646,6 +650,7 @@ const UserPage = () => {
 }
 
 export default UserPage
+
 
 
 
