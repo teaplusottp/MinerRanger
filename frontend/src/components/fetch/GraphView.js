@@ -38,6 +38,18 @@ const titleCase = (str = "") =>
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 
+const formatReportTitle = (raw = "") => {
+  const str = String(raw || "").trim();
+  if (!str) return str;
+
+  const segment = str.split(/[\\/]/).filter(Boolean).pop() || str;
+  const withoutExt = segment.replace(/\.[^/.]+$/, "");
+  const normalized = withoutExt.replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const cleaned = normalized.replace(/\bcleaned report\b$/i, "").trim();
+
+  return cleaned ? titleCase(cleaned) : "";
+};
+
 const cleanVariantLabel = (s = "") => s.replace(/[\(\)'"]/g, "").replace(/, /g, ", ");
 
 const parseEdgeTuple = (edgeStr) => {
@@ -533,6 +545,8 @@ function GraphView() {
     );
   }
 
+  const reportTitle = formatReportTitle(report?.report_title);
+
   /* ===== Group 1: Basic Statistics ===== */
   const renderBasicStatistics = () => {
     const stats = report.basic_statistics || {};
@@ -834,7 +848,7 @@ function GraphView() {
         minHeight: "100vh",
       }}
     >
-      {report.report_title && (
+      {reportTitle && (
         <h2
           style={{
             fontSize: "2.2rem",
@@ -845,7 +859,7 @@ function GraphView() {
             WebkitTextFillColor: "transparent",
           }}
         >
-          {titleCase(report.report_title)}
+          {reportTitle}
         </h2>
       )}
 
