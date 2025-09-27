@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { CSpinner } from "@coreui/react";
 import { useDb } from '../../context/DbContext';
 const AUTH_TOKEN_KEY = 'minerranger.authToken';
@@ -251,7 +251,7 @@ const EdgeMatrix = ({ title, edges, accent }) => {
   );
 };
 
-// Vertical “unwanted” bar (keep 2 fixed colors for 2 types of columns, with axis + ticks + numbers)
+// Vertical �unwanted� bar (keep 2 fixed colors for 2 types of columns, with axis + ticks + numbers)
 const UnwantedComboChart = ({ title, rows, accent }) => {
   const actLabel = (d) => d.activity_name ?? d.activity ?? d.name ?? "";
   const rawMax = Math.max(...rows.map((d) => d.count || 0), 1);
@@ -478,18 +478,43 @@ function GraphView() {
 
     setReport(null)
 
-    fetch("http://localhost:8000/graph?db=", {
+    const abortController = new AbortController()
+    let cancelled = false
+
+    fetch(`http://localhost:8000/graph?db=${encodeURIComponent(selectedDb)}`, {
       headers: {
-        Authorization: Bearer ,
+        Authorization: `Bearer ${token}`,
       },
+      signal: abortController.signal,
     })
-      .then((res) => res.json())
-      .then((data) => setReport(data))
-      .catch((err) => console.error('Error fetching report:', err))
-  }, [selectedDb])           
-  
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load report: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setReport(data)
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching report:', err)
+          if (!cancelled) {
+            setReport(null)
+          }
+        }
+      })
+
+    return () => {
+      cancelled = true
+      abortController.abort()
+    }
+  }, [selectedDb])
+
   if (!selectedDb) {
-    return <div style={{ padding: 20 }}>Hãy chọn một database để xem báo cáo</div>
+    return <div style={{ padding: 20 }}>Please choose or upload a database to see report</div>
   }
 
   if (!report) {
@@ -641,7 +666,7 @@ function GraphView() {
       ([k, v]) => k !== "insights" && !(v && typeof v === "object") && typeof v !== "undefined"
     );
 
-    // RESTORE 2 IMAGES (dotted_chart.png, throughput_time_density.png) — do not hardcode names
+    // RESTORE 2 IMAGES (dotted_chart.png, throughput_time_density.png) � do not hardcode names
     const images = Object.entries(pa)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
       .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
