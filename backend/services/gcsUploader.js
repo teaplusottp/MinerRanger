@@ -71,7 +71,7 @@ const buildUserPrefix = (userId) => `user/${sanitizeSegment(userId, "user")}`;
 const buildDatasetPrefix = ({ userId, datasetFolder }) => {
   const userPrefix = buildUserPrefix(userId);
   const datasetSegment = sanitizeSegment(datasetFolder, "dataset");
-  return `${userPrefix}/${datasetSegment}`;
+  return `${userPrefix}/metadata/${datasetSegment}`;
 };
 
 const writeEmptyObject = async (objectName) => {
@@ -155,3 +155,4 @@ export const uploadFileFromPath = async ({ localPath, destination, contentType }
 
   return `https://storage.googleapis.com/${bucket.name}/${destination}`;
 };
+

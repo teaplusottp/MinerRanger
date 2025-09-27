@@ -416,7 +416,7 @@ const AppHeader = ({ onOpenChat }) => {
                   style={{ display: "none" }}
                   onChange={handleFileChange}
                 />
-                {selectedFile && <p className="mt-2">ðŸ“„ {selectedFile.name}</p>}
+                {selectedFile && <p className="mt-2">{selectedFile.name}</p>}
 
                 <CFormTextarea
                   rows={6}
