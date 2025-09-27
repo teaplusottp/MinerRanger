@@ -1,11 +1,11 @@
 import express from "express";
 import multer from "multer";
+import crypto from "crypto";
 import User from "../models/User.js";
 import { protect } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
-import fs from "fs";
 import path from "path";
-import { createAvatarObjectName, createDataObjectName, uploadAvatarBuffer, uploadFileFromPath } from "../services/gcsUploader.js";
+import { createAvatarObjectName, createDataObjectName, buildDatasetGcsPrefix, ensureUserBootstrapFolders, uploadAvatarBuffer, uploadFileFromPath } from "../services/gcsUploader.js";
 
 const router = express.Router();
 
@@ -52,6 +52,15 @@ router.post("/register", async (req, res) => {
     }
 
     const user = await User.create({ username, email, password });
+
+    try {
+      await ensureUserBootstrapFolders({ userId: user._id.toString() });
+    } catch (storageErr) {
+      await User.findByIdAndDelete(user._id);
+      console.error("Failed to initialize user storage:", storageErr);
+      return res.status(500).json({ message: "Failed to initialize user storage." });
+    }
+
     const token = generateToken(user._id);
     const profile = mapUserProfile(user);
     res.status(201).json({
@@ -319,6 +328,42 @@ const sanitizeDisplayName = (value) => {
   return `Dataset ${new Date().toISOString()}`;
 };
 
+const slugifyDatasetName = (value) => {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (!raw) {
+    return '';
+  }
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
+const datasetIdFragment = (value) => {
+  const raw = String(value ?? '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+  return raw.slice(0, 8);
+};
+
+const buildDatasetFolderName = (displayName, datasetId) => {
+  const slug = slugifyDatasetName(displayName);
+  const fragment = datasetIdFragment(datasetId);
+  if (slug && fragment) {
+    return `${slug}-${fragment}`;
+  }
+  if (slug) {
+    return slug;
+  }
+  if (fragment) {
+    return `dataset-${fragment}`;
+  }
+  return 'dataset';
+};
+
+
 router.get('/data-folders', protect, async (req, res) => {
   try {
     const folders = ensureArray(req.user.dataFolders)
@@ -326,6 +371,8 @@ router.get('/data-folders', protect, async (req, res) => {
         id: folder.id,
         displayName: folder.displayName,
         uploadedAt: folder.uploadedAt,
+        gcsPrefix: folder.gcsPrefix,
+        gcsFolder: folder.gcsFolder,
         files: ensureArray(folder.files),
       }))
       .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
@@ -360,6 +407,19 @@ router.post('/data-folders', protect, async (req, res) => {
   }
 
   try {
+    const datasetId =
+      jobId ||
+      (typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : Date.now().toString(36));
+    const safeDisplayName = sanitizeDisplayName(displayName);
+    const userId = req.user._id.toString();
+    const datasetFolderName = buildDatasetFolderName(safeDisplayName, datasetId);
+    const datasetPrefix = buildDatasetGcsPrefix({
+      userId,
+      datasetFolder: datasetFolderName,
+    });
+
     const uploadedFiles = [];
 
     for (const file of normalizedFiles) {
@@ -371,7 +431,12 @@ router.post('/data-folders', protect, async (req, res) => {
         return res.status(400).json({ message: 'Missing localPath for uploaded file.' });
       }
       const ext = path.extname(name || localPath) || '';
-      const destination = createDataObjectName(type, ext);
+      const destination = createDataObjectName({
+        userId,
+        datasetFolder: datasetFolderName,
+        type,
+        extension: ext,
+      });
       const publicUrl = await uploadFileFromPath({
         localPath,
         destination,
@@ -384,13 +449,11 @@ router.post('/data-folders', protect, async (req, res) => {
     }
 
     const folderRecord = {
-      id:
-        jobId ||
-        (typeof crypto.randomUUID === 'function'
-          ? crypto.randomUUID()
-          : Date.now().toString(36)),
-      displayName: sanitizeDisplayName(displayName),
+      id: datasetId,
+      displayName: safeDisplayName,
       uploadedAt: uploadedAt ? new Date(uploadedAt) : new Date(),
+      gcsPrefix: datasetPrefix,
+      gcsFolder: datasetFolderName,
       files: uploadedFiles,
     };
 
@@ -411,6 +474,3 @@ const generateToken = (id) => {
 };
 
 export default router;
-
-
-

@@ -35,15 +35,30 @@ const randomId = () => {
   return crypto.randomBytes(24).toString("hex");
 };
 
-const DATA_TYPE_PREFIXES = {
-  description: "data/description",
-  bpmn: "data/bpmn",
-  report: "data/report",
-  log_raw: "data/log/raw",
-  log_cleaned: "data/log/cleaned",
-  chart_dotted: "data/charts/dotted_chart",
-  chart_throughput_time_density: "data/charts/throughput_time_density",
-  chart_unwanted_activity_stats: "data/charts/unwanted_activity_stats",
+const DATA_TYPE_RELATIVE_PATHS = {
+  description: "description",
+  bpmn: "bpmn",
+  report: "report",
+  log_raw: "log/raw",
+  log_cleaned: "log/cleaned",
+  chart_dotted: "charts/dotted_chart",
+  chart_throughput_time_density: "charts/throughput_time_density",
+  chart_unwanted_activity_stats: "charts/unwanted_activity_stats",
+};
+
+const sanitizeSegment = (value, fallback) => {
+  const raw = String(value ?? "").trim().toLowerCase();
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (normalized) {
+    return normalized;
+  }
+  return fallback;
 };
 
 const ensureLeadingDot = (ext = "") => {
@@ -51,15 +66,56 @@ const ensureLeadingDot = (ext = "") => {
   return ext.startsWith(".") ? ext : `.${ext}`;
 };
 
-export const createAvatarObjectName = (userId = "user") => {
-  const randomSegment = crypto.randomBytes(24).toString("hex");
-  return `avatars/${userId}-${randomSegment}.png`;
+const buildUserPrefix = (userId) => `user/${sanitizeSegment(userId, "user")}`;
+
+const buildDatasetPrefix = ({ userId, datasetFolder }) => {
+  const userPrefix = buildUserPrefix(userId);
+  const datasetSegment = sanitizeSegment(datasetFolder, "dataset");
+  return `${userPrefix}/${datasetSegment}`;
 };
 
-export const createDataObjectName = (type, extension = "") => {
-  const prefix = DATA_TYPE_PREFIXES[type] || "data/others";
+const writeEmptyObject = async (objectName) => {
+  const file = bucket.file(objectName);
+  await file.save(Buffer.alloc(0), {
+    resumable: false,
+    metadata: {
+      cacheControl: "no-store",
+      contentType: "application/octet-stream",
+    },
+  });
+};
+
+export const ensureUserBootstrapFolders = async ({ userId }) => {
+  if (!userId) {
+    throw new Error("userId is required to initialize user folders");
+  }
+
+  const userPrefix = buildUserPrefix(userId);
+  const placeholders = [
+    `${userPrefix}/avatar/.keep`,
+    `${userPrefix}/metadata/.keep`,
+  ];
+
+  await Promise.all(placeholders.map((objectName) => writeEmptyObject(objectName)));
+};
+export const createAvatarObjectName = (userId = "user") => {
+  const randomSegment = crypto.randomBytes(24).toString("hex");
+  return `${buildUserPrefix(userId)}/avatar/${randomSegment}.png`;
+};
+
+export const buildDatasetGcsPrefix = ({ userId, datasetFolder }) =>
+  buildDatasetPrefix({ userId, datasetFolder });
+
+export const createDataObjectName = ({
+  userId,
+  datasetFolder,
+  type,
+  extension = "",
+}) => {
+  const datasetPrefix = buildDatasetPrefix({ userId, datasetFolder });
+  const relativePath = DATA_TYPE_RELATIVE_PATHS[type] || "others";
   const safeExt = ensureLeadingDot(extension || "");
-  return `${prefix}/${randomId()}${safeExt}`;
+  return `${datasetPrefix}/${relativePath}/${randomId()}${safeExt}`;
 };
 
 export const uploadAvatarBuffer = async ({ buffer, destination, contentType }) => {

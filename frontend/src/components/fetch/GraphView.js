@@ -4,7 +4,7 @@ import { useDb } from '../../context/DbContext';
 const AUTH_TOKEN_KEY = 'minerranger.authToken';
 /* ======================= Helpers & Styling ======================= */
 
-// GhÃ©p URL áº£nh (náº¿u server tráº£ filename) â†’ /static/<file>
+// Ghép URL ảnh (nếu server trả filename) /static/<file>
 const toStaticUrl = (u) => {
   const s = String(u || "");
   if (!s) return s;
@@ -45,7 +45,7 @@ const parseEdgeTuple = (edgeStr) => {
   return m ? [m[1], m[2]] : [];
 };
 
-// Kiá»ƒu matrix: [ [ [from, to], value ], ... ]
+// Kiểu matrix: [ [ [from, to], value ], ... ]
 const isEdgeMatrixArray = (data) => {
   if (!Array.isArray(data) || data.length === 0) return false;
   const first = data[0];
@@ -59,7 +59,7 @@ const isEdgeMatrixArray = (data) => {
   );
 };
 
-// Kiá»ƒu unwanted stats: [{ activity_name|name|activity, count, percentage }, ...]
+// Kiểu unwanted stats: [{ activity_name|name|activity, count, percentage }, ...]
 const isUnwantedStatArray = (data) => {
   if (!Array.isArray(data) || data.length === 0) return false;
   const f = data[0];
@@ -72,13 +72,13 @@ const isUnwantedStatArray = (data) => {
   );
 };
 
-// MÃ u chá»§ Ä‘áº¡o theo group
+// Màu theo group
 const groupAccents = {
   basic: "#42a5f5",       // xanh lam
-  process: "#ff6f61",     // Ä‘á» cam
-  performance: "#7e57c2", // tÃ­m
-  conformance: "#26a69a", // xanh ngá»c
-  enhancement: "#ffa726", // cam vÃ ng
+  process: "#ff6f61",     // da cam
+  performance: "#7e57c2", // tím
+  conformance: "#26a69a", // xanh ngọc
+  enhancement: "#ffa726", // cam vàng
 };
 
 /* ======================= Generic Pieces ======================= */
@@ -112,7 +112,7 @@ const Block = ({ children }) => (
   </div>
 );
 
-// Tháº» sá»‘: dÃ¹ng accent (nháº¡t hÆ¡n title), insight cÃ²n nháº¡t hÆ¡n ná»¯a
+// Thẻ số: dùng accent (nhạt hơn title), insight còn nhạt hơn nữa
 const MetricCards = ({ entries, accent }) => {
   if (!entries?.length) return null;
   return (
@@ -138,7 +138,7 @@ const MetricCards = ({ entries, accent }) => {
   );
 };
 
-// Bar ngang (má»—i cá»™t 1 mÃ u trÆ¡n = accent cá»§a group)
+// Bar ngang (mỗi cột 1 màu trơn = accent của group)
 const HorizontalBars = ({ chartKey, chart, accent }) => {
   const labels = chart?.data?.[0] || [];
   const values = chart?.data?.[1] || [];
@@ -200,7 +200,7 @@ const HorizontalBars = ({ chartKey, chart, accent }) => {
 
 /* ======================= Special Renderers ======================= */
 
-// Báº£ng ma tráº­n (dÃ¹ng accent cá»§a group cho viá»n/Ä‘áº§u báº£ng/Ã´ cÃ³ dá»¯ liá»‡u)
+// Bảng ma trận (dùng accent của group cho viền/đầu bảng/ô có dữ liệu)
 const EdgeMatrix = ({ title, edges, accent }) => {
   const nodes = useMemo(() => Array.from(new Set(edges.flatMap(([pair]) => pair))), [edges]);
   const matrixData = useMemo(
@@ -251,13 +251,13 @@ const EdgeMatrix = ({ title, edges, accent }) => {
   );
 };
 
-// Bar dá»c â€œunwantedâ€ (giá»¯ Ä‘Ãºng 2 mÃ u cá»‘ Ä‘á»‹nh cho 2 loáº¡i cá»™t, cÃ³ trá»¥c + ticks + sá»‘)
+// Bar dọc “unwanted” (giữ đúng 2 màu cố định cho 2 loại cột, có trục + ticks + số)
 const UnwantedComboChart = ({ title, rows, accent }) => {
   const actLabel = (d) => d.activity_name ?? d.activity ?? d.name ?? "";
   const rawMax = Math.max(...rows.map((d) => d.count || 0), 1);
   const maxCount = Math.ceil(rawMax / 50) * 50;
 
-  // pháº§n trÄƒm cÃ³ thá»ƒ 0â€“1 hoáº·c 0â€“100
+  // phần trăm có thể 0–1 hoặc 0–100
   const pctFraction = (p) => {
     if (p == null) return 0;
     const v = Number(p);
@@ -270,7 +270,7 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
   const countTicks = Array.from({ length: 6 }, (_, i) => Math.round((i * maxCount) / 5));
   const pctTicks = [0, 20, 40, 60, 80, 100];
 
-  // 2 mÃ u cá»‘ Ä‘á»‹nh toÃ n dashboard
+  // 2 màu cố định toàn dashboard
   const COUNT_COLOR = "#42a5f5";
   const PCT_COLOR = "#ef5350";
 
@@ -318,7 +318,7 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
           })}
         </div>
 
-        {/* Trá»¥c Count (trÃ¡i) */}
+        {/* Trục Count (trái) */}
         <div
           style={{
             position: "absolute",
@@ -340,7 +340,7 @@ const UnwantedComboChart = ({ title, rows, accent }) => {
           ))}
         </div>
 
-        {/* Trá»¥c Percentage (pháº£i) */}
+        {/* Trục Percentage (phải) */}
         <div
           style={{
             position: "absolute",
@@ -489,7 +489,7 @@ function GraphView() {
   }, [selectedDb])           
   
   if (!selectedDb) {
-    return <div style={{ padding: 20 }}>âš ï¸ HÃ£y chá»n má»™t database Ä‘á»ƒ xem bÃ¡o cÃ¡o</div>
+    return <div style={{ padding: 20 }}>Hãy chọn một database để xem báo cáo</div>
   }
 
   if (!report) {
@@ -553,10 +553,10 @@ function GraphView() {
     const pd = report.process_discovery;
     if (!pd || typeof pd !== "object") return null;
 
-    // card sá»‘
+    // card số
     const cards = Object.entries(pd).filter(([k, v]) => k !== "insights" && typeof v === "number");
 
-    // áº£nh (náº¿u cÃ³ cÃ¡c field cÃ³ img_url)
+    // ảnh (nếu có các field có img_url)
     const images = Object.entries(pd)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
       .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
@@ -641,12 +641,12 @@ function GraphView() {
       ([k, v]) => k !== "insights" && !(v && typeof v === "object") && typeof v !== "undefined"
     );
 
-    // KHÃ”I PHá»¤C 2 áº¢NH (dotted_chart.png, throughput_time_density.png) â€” khÃ´ng hardcode tÃªn
+    // KHÔI PHỤC 2 ẢNH (dotted_chart.png, throughput_time_density.png) — không hardcode tên
     const images = Object.entries(pa)
       .filter(([, v]) => v && typeof v === "object" && "img_url" in v)
       .map(([k, v]) => ({ key: k, url: toStaticUrl(v.img_url) }));
 
-    // Báº£ng ma tráº­n tá»« object .data Ä‘áº§u tiÃªn khÃ´ng cÃ³ img_url
+    // Bảng ma trận từ object .data đầu tiên không có img_url
     const graphJsonEntry = Object.entries(pa).find(
       ([, v]) => v && typeof v === "object" && v.data && typeof v.data === "object" && !("img_url" in v)
     );

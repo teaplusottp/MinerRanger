@@ -112,7 +112,7 @@ const AppHeader = ({ onOpenChat }) => {
     }
   }, [isUserMenuOpen])
 
-  // auto scroll xuá»‘ng cuá»‘i khi cÃ³ log má»›i
+  // auto scroll xuống dưới khi có log mới
   useEffect(() => {
     if (logBoxRef.current) {
       logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
@@ -378,10 +378,10 @@ const AppHeader = ({ onOpenChat }) => {
               <div className="d-flex flex-column" style={{ minHeight: "150px" }}>
                 <div className="d-flex align-items-center mb-2">
                   <CSpinner color="primary" />
-                  <span className="ms-2">Äang xá»­ lÃ½ file, vui lÃ²ng Ä‘á»£i...</span>
+                  <span className="ms-2">Đang xử lí file, vui lòng đợi</span>
                 </div>
 
-                {/* Ã” log cÃ³ ná»™i dung */}
+                {/* Log của nội dung */}
                 <div
                   ref={logBoxRef}
                   style={{
@@ -420,7 +420,7 @@ const AppHeader = ({ onOpenChat }) => {
 
                 <CFormTextarea
                   rows={6}
-                  placeholder="Nháº­p ghi chÃº..."
+                  placeholder="Nhập ghi chú hoặc mô tả (tùy chọn)..."
                   className="mt-3"
                   value={textValue}
                   onChange={(e) => setTextValue(e.target.value)}
@@ -462,12 +462,12 @@ const AppHeader = ({ onOpenChat }) => {
                 ))}
               </CListGroup>
             ) : (
-              <div>KhÃ´ng cÃ³ database</div>
+              <div>Không có database</div>
             )
           ) : (
             <div className="d-flex align-items-center">
               <CSpinner size="sm" className="me-2" />
-              <span>Äang táº£i databases...</span>
+              <span>Đang tải database</span>
             </div>
           )}
         </COffcanvasBody>
