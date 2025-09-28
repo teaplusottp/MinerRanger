@@ -385,9 +385,9 @@ const AppHeader = ({ onOpenChat }) => {
                 <div
                   ref={logBoxRef}
                   style={{
-                    background: "#111",
-                    color: "#0f0",
-                    fontFamily: "monospace",
+                    background: "var(--cui-body-bg, #fff)",
+                    color: "#000",
+                    fontFamily: "inherit",
                     fontSize: "14px",
                     padding: "10px",
                     borderRadius: "6px",
