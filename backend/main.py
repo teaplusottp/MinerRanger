@@ -443,6 +443,8 @@ async def _execute_root_agent(question: str) -> Dict[str, Any]:
     if InMemoryRunner is None or genai_types is None:
         raise RuntimeError("google-adk runtime is not available")
 
+    user_id = "web-client"
+    session_id = str(uuid.uuid4())
     new_message = genai_types.Content(
         role="user",
         parts=[genai_types.Part(text=question)],
@@ -450,10 +452,14 @@ async def _execute_root_agent(question: str) -> Dict[str, Any]:
     runner = InMemoryRunner(agent=root_agent)
     events: list[Any] = []
 
+    await runner.session_service.create_session(
+        app_name=runner.app_name, user_id=user_id, session_id=session_id
+    )
+
     async with runner:
         async for event in runner.run_async(
-            user_id="web-client",
-            session_id=str(uuid.uuid4()),
+            user_id=user_id,
+            session_id=session_id,
             new_message=new_message,
         ):
             events.append(event)
