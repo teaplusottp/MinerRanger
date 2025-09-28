@@ -1,11 +1,39 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+
+import { askChatbot, extractChatbotError } from '../services/chatbotService'
+
+const createTimestamp = () => new Date().toISOString()
 
 const ChatbotSidebar = ({ isOpen, onClose }) => {
   const sidebarRef = useRef(null)
-  const [message, setMessage] = useState("")
-  const [chat, setChat] = useState([])
-  const [chatList, setChatList] = useState([])
+  const nextIdRef = useRef(1)
+  const [message, setMessage] = useState('')
+  const [conversations, setConversations] = useState([])
   const [currentChatId, setCurrentChatId] = useState(null)
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+    if (conversations.length === 0) {
+      const newChatId = nextIdRef.current++
+      setConversations([{ id: newChatId, name: 'Cuoc tro chuyen 1', messages: [] }])
+      setCurrentChatId(newChatId)
+      setMessage('')
+      setError(null)
+    } else if (!currentChatId) {
+      setCurrentChatId(conversations[0].id)
+    }
+  }, [isOpen, conversations, currentChatId])
+
+  const activeConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === currentChatId) || null,
+    [conversations, currentChatId],
+  )
+
+  const messages = activeConversation?.messages || []
 
   const handleBackdropPointerDown = (event) => {
     const sidebarEl = sidebarRef.current
@@ -15,64 +43,94 @@ const ChatbotSidebar = ({ isOpen, onClose }) => {
     onClose?.()
   }
 
-  // load danh sach chat khi mo
-  useEffect(() => {
-    if (isOpen) {
-      fetch("http://localhost:8000/chats")
-        .then((res) => res.json())
-        .then((data) => {
-          setChatList(data)
-          if (data.length > 0) {
-            setCurrentChatId(data[0].id)
-            loadChatHistory(data[0].id)
-          }
-        })
-    }
-  }, [isOpen])
-
-  const loadChatHistory = async (chatId) => {
-    const res = await fetch(`http://localhost:8000/chats/${chatId}`)
-    const data = await res.json()
-    setChat(data.messages)
+  const handleCreateNewChat = () => {
+    const newChatId = nextIdRef.current++
+    const name = `Cuoc tro chuyen ${conversations.length + 1}`
+    setConversations((prev) => [...prev, { id: newChatId, name, messages: [] }])
+    setCurrentChatId(newChatId)
+    setMessage('')
+    setError(null)
   }
 
-  const createNewChat = async () => {
-    const res = await fetch("http://localhost:8000/chats", {
-      method: "POST",
+  const handleDeleteChat = (chatId) => {
+    setConversations((prev) => {
+      const filtered = prev.filter((conversation) => conversation.id !== chatId)
+      if (filtered.length === prev.length) {
+        return prev
+      }
+      if (chatId === currentChatId) {
+        setCurrentChatId(filtered.length ? filtered[0].id : null)
+      }
+      return filtered
     })
-    const data = await res.json()
-    setChatList((prev) => [...prev, data])
-    setCurrentChatId(data.id)
-    setChat([])
   }
 
-  const deleteChat = async (chatId) => {
-    await fetch(`http://localhost:8000/chats/${chatId}`, { method: "DELETE" })
-    setChatList((prev) => prev.filter((c) => c.id !== chatId))
-    if (currentChatId === chatId) {
-      setCurrentChatId(null)
-      setChat([])
+  const pushMessage = (chatId, newMessage) => {
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === chatId
+          ? { ...conversation, messages: [...conversation.messages, newMessage] }
+          : conversation,
+      ),
+    )
+  }
+
+  const deriveAnswerText = (payload) => {
+    if (!payload) {
+      return ''
     }
+    if (typeof payload.answer === 'string' && payload.answer.trim().length) {
+      return payload.answer.trim()
+    }
+    if (typeof payload === 'string' && payload.trim().length) {
+      return payload.trim()
+    }
+    return JSON.stringify(payload)
   }
 
-  const sendMessage = async () => {
-    if (!message.trim() || !currentChatId) return
+  const handleSendMessage = async () => {
+    const trimmed = message.trim()
+    if (!trimmed) {
+      return
+    }
 
-    setChat((prev) => [...prev, { role: "user", text: message }])
+    let chatId = currentChatId
+    if (!chatId) {
+      chatId = nextIdRef.current++
+      const name = `Cuoc tro chuyen ${conversations.length + 1 || 1}`
+      setConversations((prev) => [...prev, { id: chatId, name, messages: [] }])
+      setCurrentChatId(chatId)
+    }
+
+    const userMessage = { role: 'user', text: trimmed, timestamp: createTimestamp() }
+    pushMessage(chatId, userMessage)
+    setMessage('')
+    setIsSending(true)
+    setError(null)
 
     try {
-      const res = await fetch(`http://localhost:8000/chats/${currentChatId}/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      })
-      const data = await res.json()
-      setChat((prev) => [...prev, { role: "bot", text: data.reply }])
+      const response = await askChatbot(trimmed)
+      const botMessage = {
+        role: 'bot',
+        text: deriveAnswerText(response),
+        raw: response,
+        timestamp: createTimestamp(),
+      }
+      pushMessage(chatId, botMessage)
     } catch (err) {
-      console.error(err)
+      const errorMessage = extractChatbotError(err)
+      pushMessage(chatId, { role: 'error', text: errorMessage, timestamp: createTimestamp() })
+      setError(errorMessage)
+    } finally {
+      setIsSending(false)
     }
+  }
 
-    setMessage("")
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    if (!isSending) {
+      handleSendMessage()
+    }
   }
 
   return (
@@ -82,183 +140,214 @@ const ChatbotSidebar = ({ isOpen, onClose }) => {
       onMouseDown={handleBackdropPointerDown}
       onTouchStart={handleBackdropPointerDown}
       style={{
-        position: "fixed",
+        position: 'fixed',
         inset: 0,
-        background: isOpen ? "rgba(0, 0, 0, 0.2)" : "transparent",
-        transition: "background 0.3s ease",
-        pointerEvents: isOpen ? "auto" : "none",
+        background: isOpen ? 'rgba(0, 0, 0, 0.2)' : 'transparent',
+        transition: 'background 0.3s ease',
+        pointerEvents: isOpen ? 'auto' : 'none',
         zIndex: 1049,
       }}
     >
       <div
         ref={sidebarRef}
         style={{
-          position: "absolute",
+          position: 'absolute',
           top: 0,
           right: 0,
-          width: "340px",
-          height: "100vh",
-          background: "#1e1e1e",
-          borderLeft: "1px solid #333",
-          boxShadow: "-2px 0 8px rgba(0,0,0,0.5)",
-          display: "flex",
-          flexDirection: "column",
-          transition: "transform 0.3s ease",
-          transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          color: "#fff",
+          width: '340px',
+          height: '100vh',
+          background: '#1e1e1e',
+          borderLeft: '1px solid #333',
+          boxShadow: '-2px 0 8px rgba(0,0,0,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'transform 0.3s ease',
+          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+          color: '#fff',
         }}
       >
-        {/* Header */}
         <div
           style={{
-            padding: "12px",
-            borderBottom: "1px solid #333",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontWeight: "bold",
+            padding: '12px',
+            borderBottom: '1px solid #333',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontWeight: 'bold',
           }}
         >
           AI Chatbot
           <button
+            type="button"
             onClick={onClose}
             style={{
-              background: "#c0392b",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              padding: "2px 8px",
-              cursor: "pointer",
+              background: '#c0392b',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '6px 12px',
+              cursor: 'pointer',
             }}
           >
-            X
+            Dong
           </button>
         </div>
 
-        {/* Dropdown chon chat */}
         <div
           style={{
-            display: "flex",
-            gap: "6px",
-            padding: "10px",
-            borderBottom: "1px solid #333",
+            display: 'flex',
+            gap: '6px',
+            padding: '10px',
+            borderBottom: '1px solid #333',
           }}
         >
           <select
-            value={currentChatId || ""}
-            onChange={(e) => {
-              setCurrentChatId(Number(e.target.value))
-              loadChatHistory(Number(e.target.value))
-            }}
+            value={currentChatId || ''}
+            onChange={(event) => setCurrentChatId(Number(event.target.value))}
             style={{
               flex: 1,
-              padding: "6px",
-              borderRadius: "4px",
-              background: "#2c2c2c",
-              color: "#fff",
-              border: "1px solid #555",
+              padding: '6px',
+              borderRadius: '4px',
+              background: '#2c2c2c',
+              color: '#fff',
+              border: '1px solid #555',
             }}
           >
-            {chatList.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {conversations.map((conversation) => (
+              <option key={conversation.id} value={conversation.id}>
+                {conversation.name}
               </option>
             ))}
           </select>
           <button
-            onClick={createNewChat}
+            type="button"
+            onClick={handleCreateNewChat}
             style={{
-              background: "#27ae60",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              padding: "0 10px",
-              cursor: "pointer",
+              background: '#27ae60',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0 10px',
+              cursor: 'pointer',
             }}
           >
             +
           </button>
           <button
-            onClick={() => deleteChat(currentChatId)}
+            type="button"
+            onClick={() => handleDeleteChat(currentChatId)}
             style={{
-              background: "#e74c3c",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              padding: "0 10px",
-              cursor: "pointer",
+              background: '#e74c3c',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0 10px',
+              cursor: currentChatId ? 'pointer' : 'not-allowed',
+              opacity: currentChatId ? 1 : 0.5,
             }}
+            disabled={!currentChatId}
           >
             Del
           </button>
         </div>
 
-        {/* Body tin nhan */}
         <div
           style={{
             flex: 1,
-            padding: "10px",
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
+            padding: '10px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
           }}
         >
-          {chat.map((c, i) => (
-            <div
-              key={i}
-              style={{
-                alignSelf: c.role === "bot" ? "flex-start" : "flex-end",
-                background: c.role === "bot" ? "#2c2c2c" : "#3498db",
-                color: "#fff",
-                padding: "6px 10px",
-                borderRadius: "6px",
-                marginBottom: "8px",
-                maxWidth: "80%",
-              }}
-            >
-              {c.text}
-            </div>
-          ))}
+          {messages.map((item, index) => {
+            const alignment = item.role === 'bot' ? 'flex-start' : item.role === 'error' ? 'center' : 'flex-end'
+            const background =
+              item.role === 'bot'
+                ? '#2c2c2c'
+                : item.role === 'error'
+                ? '#8e1b1b'
+                : '#3498db'
+            return (
+              <div
+                key={`${item.role}-${index}-${item.timestamp || index}`}
+                style={{
+                  alignSelf: alignment,
+                  background,
+                  color: '#fff',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  maxWidth: '80%',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {item.text}
+              </div>
+            )
+          })}
         </div>
 
-        {/* Input + send */}
-        <div
+        <form
+          onSubmit={handleSubmit}
           style={{
-            padding: "10px",
-            borderTop: "1px solid #333",
-            display: "flex",
-            gap: "6px",
+            padding: '10px',
+            borderTop: '1px solid #333',
+            display: 'flex',
+            gap: '6px',
           }}
         >
           <input
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(event) => setMessage(event.target.value)}
             placeholder="Nhap tin nhan..."
             style={{
               flex: 1,
-              padding: "8px",
-              borderRadius: "4px",
-              border: "1px solid #555",
-              background: "#2c2c2c",
-              color: "#fff",
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid #555',
+              background: '#2c2c2c',
+              color: '#fff',
             }}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                if (!isSending) {
+                  handleSendMessage()
+                }
+              }
+            }}
           />
           <button
-            onClick={sendMessage}
+            type="submit"
+            disabled={isSending}
             style={{
-              background: "#2980b9",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              padding: "0 12px",
-              cursor: "pointer",
+              background: isSending ? '#555' : '#2980b9',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0 12px',
+              cursor: isSending ? 'not-allowed' : 'pointer',
             }}
           >
-            Gui
+            {isSending ? '...' : 'Gui'}
           </button>
-        </div>
+        </form>
+
+        {error ? (
+          <div
+            style={{
+              padding: '8px 12px',
+              color: '#f5c542',
+              background: '#3a2d0a',
+              borderTop: '1px solid #555',
+            }}
+          >
+            {error}
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 from google.adk.agents import LlmAgent
-from .tool import get_logs, basic_statistics, performance_analysis, performance_analysis, conformance_checking 
+from .tool import get_logs, basic_statistics, process_discovery, performance_analysis, conformance_checking
 import pm4py
 
 worker_agent = LlmAgent(
@@ -75,5 +75,5 @@ worker_agent = LlmAgent(
             - unfit_edges_with_count: list các cặp edge xuất hiện trong unfit DFG mà không có trong DFG tổng
             - unwanted_activity_stats: list dict các activity không mong muốn với keys {"activity_name", "count", "percentage"}
     """,
-    tools = [get_logs, basic_statistics, performance_analysis, performance_analysis, conformance_checking]
+    tools = [get_logs, basic_statistics, process_discovery, performance_analysis, conformance_checking]
 )

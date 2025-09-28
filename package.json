@@ -12,7 +12,7 @@
   "scripts": {
     "start": "concurrently \"npm run dev-backend-node\" \"npm run dev-backend-python\" \"npm run dev-frontend\"",
     "dev-backend-node": "cd ./backend && npm run dev",
-    "dev-backend-python": "cd ./backend && python main.py",
+    "dev-backend-python": "cd ./backend && uvicorn main:app --reload",
     "dev-frontend": "cd ./frontend && npm start"
   },
   "repository": {

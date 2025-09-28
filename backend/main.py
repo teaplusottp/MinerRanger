@@ -6,7 +6,7 @@ import shutil
 import sys
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import httpx
 import jwt
@@ -24,6 +24,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+from dotenv import load_dotenv
+
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(dotenv_path=dotenv_path, override=False)
+
+try:
+    from chatbot.root_agent.agent import root_agent
+    ROOT_AGENT_LOAD_ERROR: Optional[Exception] = None
+except (ModuleNotFoundError, ImportError) as exc:
+    root_agent = None  # type: ignore[assignment]
+    ROOT_AGENT_LOAD_ERROR = exc
+else:
+    ROOT_AGENT_LOAD_ERROR = None
+
+try:
+    from google.adk.runners import InMemoryRunner
+    from google.genai import types as genai_types
+    RUNNER_IMPORT_ERROR: Optional[Exception] = None
+except (ModuleNotFoundError, ImportError) as exc:
+    InMemoryRunner = None  # type: ignore[assignment]
+    genai_types = None  # type: ignore[assignment]
+    RUNNER_IMPORT_ERROR = exc
+else:
+    RUNNER_IMPORT_ERROR = None
 
 from process.WebSocketLogger import WebSocketLogger
 from process.generate_cleaned import clean_and_save_logs
@@ -394,6 +419,97 @@ chat_counter = 1
 
 class MessageRequest(BaseModel):
     message: str
+
+class ChatbotQueryRequest(BaseModel):
+    question: str
+
+
+
+def _extract_text_from_event(event: Any) -> str:
+    content = getattr(event, "content", None)
+    if not content or not getattr(content, "parts", None):
+        return ""
+    texts: list[str] = []
+    for part in content.parts:
+        text_value = getattr(part, "text", None)
+        if isinstance(text_value, str) and text_value.strip():
+            texts.append(text_value.strip())
+    return '\n'.join(texts)
+
+
+async def _execute_root_agent(question: str) -> Dict[str, Any]:
+    if root_agent is None:
+        raise RuntimeError("Root agent is not initialized")
+    if InMemoryRunner is None or genai_types is None:
+        raise RuntimeError("google-adk runtime is not available")
+
+    new_message = genai_types.Content(
+        role="user",
+        parts=[genai_types.Part(text=question)],
+    )
+    runner = InMemoryRunner(agent=root_agent)
+    events: list[Any] = []
+
+    async with runner:
+        async for event in runner.run_async(
+            user_id="web-client",
+            session_id=str(uuid.uuid4()),
+            new_message=new_message,
+        ):
+            events.append(event)
+
+    answer = ""
+    for event in reversed(events):
+        if getattr(event, "author", None) == "user":
+            continue
+        candidate = _extract_text_from_event(event)
+        if candidate:
+            answer = candidate
+            break
+
+    return {
+        "answer": answer.strip(),
+    }
+
+
+def _serialize_agent_result(result: Any) -> Dict[str, Any]:
+    if isinstance(result, dict):
+        return result
+    if result is None:
+        return {"answer": ""}
+    return {"answer": str(result)}
+
+
+@app.post("/api/chatbot/query")
+async def query_root_chatbot(payload: ChatbotQueryRequest):
+    if root_agent is None:
+        detail = "Chatbot agent is not available."
+        if ROOT_AGENT_LOAD_ERROR is not None:
+            detail = f"{detail} ({ROOT_AGENT_LOAD_ERROR})"
+        raise HTTPException(status_code=503, detail=detail)
+    if InMemoryRunner is None or genai_types is None:
+        detail = "Chatbot runtime is not configured."
+        if RUNNER_IMPORT_ERROR is not None:
+            detail = f"{detail} ({RUNNER_IMPORT_ERROR})"
+        raise HTTPException(status_code=503, detail=detail)
+
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question must not be empty.")
+    try:
+        result = await _execute_root_agent(question)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Chatbot agent error: {exc}") from exc
+    response_payload = _serialize_agent_result(result)
+    if not isinstance(response_payload, dict):
+        response_payload = {"answer": response_payload}
+    answer_value = response_payload.get("answer")
+    if isinstance(answer_value, str):
+        response_payload["answer"] = answer_value.strip()
+    return response_payload
+
 
 @app.get("/chats")
 def get_chats():

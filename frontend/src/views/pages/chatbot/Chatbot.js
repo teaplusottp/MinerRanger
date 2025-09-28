@@ -1,55 +1,134 @@
-import React, { useState, useEffect } from 'react'
-import {
-  CButton,
-  CForm,
-  CFormInput,
-  CRow,
-  CCol
-} from '@coreui/react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { CAlert, CButton, CForm, CFormInput } from '@coreui/react'
+
+import { askChatbot, extractChatbotError } from '../../../services/chatbotService'
+
+const createTimestamp = () => new Date().toISOString()
+
+const deriveAnswerText = (payload) => {
+  if (!payload) {
+    return ''
+  }
+  if (typeof payload.answer === 'string' && payload.answer.trim().length) {
+    return payload.answer.trim()
+  }
+  if (typeof payload === 'string' && payload.trim().length) {
+    return payload.trim()
+  }
+  return JSON.stringify(payload)
+}
 
 const Chatbot = () => {
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [history, setHistory] = useState([])
-  const [datasets, setDatasets] = useState([])
-  const [currentChat, setCurrentChat] = useState({ category: 'Chat', name: 'Cuộc trò chuyện 1' })
+  const nextIdRef = useRef(1)
+  const scrollRef = useRef(null)
+  const [conversations, setConversations] = useState([])
+  const [currentChatId, setCurrentChatId] = useState(null)
+  const [inputValue, setInputValue] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState(null)
 
-  // Lấy sidebar (datasets + history)
   useEffect(() => {
-    fetch('http://localhost:8000/api/sidebar')
-      .then((res) => res.json())
-      .then((data) => {
-        setHistory(data.history || [])
-        if (data.groups && data.groups.Datasets) {
-          setDatasets(data.groups.Datasets)
-        }
-      })
-      .catch((err) => console.error('Error fetch sidebar:', err))
-  }, [])
+    if (conversations.length === 0) {
+      const newChatId = nextIdRef.current++
+      setConversations([{ id: newChatId, name: 'Cuoc tro chuyen 1', messages: [] }])
+      setCurrentChatId(newChatId)
+    } else if (!currentChatId) {
+      setCurrentChatId(conversations[0].id)
+    }
+  }, [conversations, currentChatId])
 
-  // Lấy messages khi đổi cuộc trò chuyện hoặc dataset
+  const currentConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === currentChatId) || null,
+    [conversations, currentChatId],
+  )
+
+  const messages = currentConversation?.messages || []
+
   useEffect(() => {
-    if (!currentChat.category || !currentChat.name) return
-    fetch(`http://localhost:8000/api/messages/${currentChat.category}/${encodeURIComponent(currentChat.name)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setMessages(data.messages || [])
-      })
-      .catch((err) => console.error('Error fetch messages:', err))
-  }, [currentChat])
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
 
-  const sendMessage = () => {
-    if (!input.trim()) return
+  const pushMessage = (chatId, newMessage) => {
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === chatId
+          ? { ...conversation, messages: [...conversation.messages, newMessage] }
+          : conversation,
+      ),
+    )
+  }
 
-    fetch(`http://localhost:8000/api/chat/send?category=${currentChat.category}&name=${encodeURIComponent(currentChat.name)}&text=${encodeURIComponent(input)}`, {
-      method: "POST"
+  const handleSelectConversation = (conversationId) => {
+    setCurrentChatId(conversationId)
+    setError(null)
+  }
+
+  const handleCreateConversation = () => {
+    const newChatId = nextIdRef.current++
+    const name = `Cuoc tro chuyen ${conversations.length + 1}`
+    setConversations((prev) => [...prev, { id: newChatId, name, messages: [] }])
+    setCurrentChatId(newChatId)
+    setInputValue('')
+    setError(null)
+  }
+
+  const handleDeleteConversation = (conversationId) => {
+    setConversations((prev) => {
+      const filtered = prev.filter((conversation) => conversation.id !== conversationId)
+      if (filtered.length === prev.length) {
+        return prev
+      }
+      if (conversationId === currentChatId) {
+        setCurrentChatId(filtered.length ? filtered[0].id : null)
+      }
+      return filtered
     })
-      .then(res => res.json())
-      .then(data => {
-        setMessages(data.messages) // cập nhật toàn bộ history từ backend
-        setInput('')
+  }
+
+  const handleSendMessage = async () => {
+    const trimmed = inputValue.trim()
+    if (!trimmed) {
+      return
+    }
+
+    let chatId = currentChatId
+    if (!chatId) {
+      chatId = nextIdRef.current++
+      const name = `Cuoc tro chuyen ${conversations.length + 1 || 1}`
+      setConversations((prev) => [...prev, { id: chatId, name, messages: [] }])
+      setCurrentChatId(chatId)
+    }
+
+    const userMessage = { role: 'user', text: trimmed, timestamp: createTimestamp() }
+    pushMessage(chatId, userMessage)
+    setInputValue('')
+    setIsSending(true)
+    setError(null)
+
+    try {
+      const response = await askChatbot(trimmed)
+      pushMessage(chatId, {
+        role: 'bot',
+        text: deriveAnswerText(response),
+        raw: response,
+        timestamp: createTimestamp(),
       })
-      .catch(err => console.error('Error send message:', err))
+    } catch (err) {
+      const message = extractChatbotError(err)
+      pushMessage(chatId, { role: 'error', text: message, timestamp: createTimestamp() })
+      setError(message)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    if (!isSending) {
+      handleSendMessage()
+    }
   }
 
   return (
@@ -57,138 +136,130 @@ const Chatbot = () => {
       style={{
         display: 'flex',
         height: '100vh',
-        backgroundColor: '#121212',
+        backgroundColor: '#0f172a',
         color: '#fff',
       }}
     >
-      {/* Sidebar */}
-      <div
+      <aside
         style={{
-          width: '250px',
-          borderRight: '1px solid #333',
-          padding: '15px',
-          backgroundColor: '#1e1e1e',
-          overflowY: 'auto',
+          width: '280px',
+          borderRight: '1px solid #1f2937',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '16px',
+          gap: '16px',
         }}
       >
-        {/* Datasets */}
-        <div style={{ marginBottom: '20px' }}>
-          <h6 style={{ color: '#aaa' }}>Datasets</h6>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {datasets.map((ds, idx) => (
-              <li
-                key={idx}
-                onClick={() => setCurrentChat({ category: 'Dataset', name: ds })}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <CButton color="primary" className="flex-grow-1" onClick={handleCreateConversation}>
+            Cuoc tro chuyen moi
+          </CButton>
+          <CButton
+            color="danger"
+            variant="outline"
+            disabled={!currentChatId}
+            onClick={() => currentChatId && handleDeleteConversation(currentChatId)}
+          >
+            Xoa
+          </CButton>
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {conversations.map((conversation) => {
+            const isActive = conversation.id === currentChatId
+            return (
+              <button
+                key={conversation.id}
+                type="button"
+                onClick={() => handleSelectConversation(conversation.id)}
                 style={{
-                  padding: '8px',
-                  margin: '4px 0',
+                  textAlign: 'left',
+                  background: isActive ? '#2563eb' : '#1f2937',
+                  color: '#fff',
+                  padding: '10px 12px',
+                  border: 'none',
                   borderRadius: '6px',
-                  backgroundColor: currentChat.name === ds && currentChat.category === 'Dataset' ? '#0d6efd' : '#2a2a2a',
                   cursor: 'pointer',
                 }}
               >
-                {ds}
-              </li>
-            ))}
-          </ul>
+                {conversation.name}
+              </button>
+            )
+          })}
         </div>
-
-        {/* History */}
-        <h5 style={{ color: '#aaa' }}>Lịch sử chat</h5>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {history.map((item, idx) => (
-            <li
-              key={idx}
-              onClick={() => setCurrentChat({ category: 'Chat', name: item })}
-              style={{
-                padding: '10px',
-                margin: '5px 0',
-                borderRadius: '8px',
-                backgroundColor: currentChat.name === item && currentChat.category === 'Chat' ? '#0d6efd' : '#2a2a2a',
-                cursor: 'pointer',
-              }}
-            >
-              {item}
-            </li>
-          ))}
-        </ul>
-        <CButton
-          color="secondary"
-          className="w-100 mt-3"
-          onClick={() => {
-            const newChat = `Cuộc trò chuyện ${history.length + 1}`
-            setHistory([...history, newChat])
-            setCurrentChat({ category: 'Chat', name: newChat })
-          }}
-        >
-          + Cuộc trò chuyện mới
-        </CButton>
-      </div>
-
-      {/* Chat chính */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      </aside>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div
+          ref={scrollRef}
           style={{
             flex: 1,
+            padding: '24px',
             overflowY: 'auto',
-            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
           }}
         >
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              style={{
-                textAlign: msg.from === 'user' ? 'right' : 'left',
-                margin: '8px 0',
-              }}
-            >
-              <span
+          {messages.map((item, index) => {
+            const alignment = item.role === 'bot' ? 'flex-start' : item.role === 'error' ? 'center' : 'flex-end'
+            const background =
+              item.role === 'bot'
+                ? '#1f2937'
+                : item.role === 'error'
+                ? '#991b1b'
+                : '#2563eb'
+            return (
+              <div
+                key={`${item.role}-${index}-${item.timestamp || index}`}
                 style={{
-                  display: 'inline-block',
-                  padding: '10px 15px',
+                  alignSelf: alignment,
+                  background,
+                  color: '#fff',
+                  padding: '12px 16px',
                   borderRadius: '12px',
-                  background:
-                    msg.from === 'user' ? '#0d6efd' : '#2a2a2a',
-                  color: msg.from === 'user' ? '#fff' : '#ddd',
                   maxWidth: '70%',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
                 }}
               >
-                {msg.text}
-              </span>
+                {item.text}
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ padding: '16px', borderTop: '1px solid #1f2937' }}>
+          <CForm onSubmit={handleSubmit}>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <CFormInput
+                value={inputValue}
+                onChange={(event) => setInputValue(event.target.value)}
+                placeholder="Nhap cau hoi..."
+                style={{
+                  flex: 1,
+                  backgroundColor: '#111827',
+                  color: '#fff',
+                  border: '1px solid #1f2937',
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    if (!isSending) {
+                      handleSendMessage()
+                    }
+                  }
+                }}
+              />
+              <CButton color="primary" type="submit" disabled={isSending}>
+                {isSending ? 'Dang gui...' : 'Gui'}
+              </CButton>
             </div>
-          ))}
-        </div>
-
-        {/* Ô nhập tin nhắn */}
-        <div style={{ borderTop: '1px solid #333', padding: '15px' }}>
-          <CForm
-            onSubmit={(e) => {
-              e.preventDefault()
-              sendMessage()
-            }}
-          >
-            <CRow>
-              <CCol xs={10}>
-                <CFormInput
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Nhập tin nhắn..."
-                  style={{
-                    backgroundColor: '#1e1e1e',
-                    color: '#fff',
-                    border: '1px solid #444',
-                  }}
-                />
-              </CCol>
-              <CCol xs={2}>
-                <CButton color="primary" className="w-100" type="submit">
-                  Gửi
-                </CButton>
-              </CCol>
-            </CRow>
           </CForm>
+          {error ? (
+            <CAlert color="warning" className="mt-3">
+              {error}
+            </CAlert>
+          ) : null}
         </div>
-      </div>
+      </main>
     </div>
   )
 }
