@@ -13,3 +13,5 @@ uvicorn
 httpx
 PyJWT
 google-adk
+google-cloud-storage
+motor

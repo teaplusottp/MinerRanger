@@ -54,6 +54,9 @@ from process.WebSocketLogger import WebSocketLogger
 from process.generate_cleaned import clean_and_save_logs
 from process.generate_json import gen_report
 from process.generate_store import build_store
+from chatbot.chat_sessions import ChatHistoryManager
+from chatbot.dataset_context import dataset_context
+from chatbot.dataset_loader import load_dataset_artefacts
 from process.__init__ import GEMINI_API_KEY
 
 # ===================== App config =====================
@@ -81,6 +84,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # ===================== Config =====================
 
+CHAT_MONGO_URI = os.getenv("CHAT_HISTORY_MONGO_URI") or os.getenv("MONGODB_URI")
 JWT_SECRET = os.getenv("JWT_SECRET", "123456s")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 USER_SERVICE_BASE_URL = os.getenv(
@@ -125,6 +129,31 @@ def decode_token(token: str) -> dict:
     except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
+
+def extract_user_id(claims: dict) -> Optional[str]:
+    for key in ("id", "_id", "user_id", "userId"):
+        value = claims.get(key)
+        if isinstance(value, str) and value:
+            return value
+        if isinstance(value, dict):
+            candidate = value.get("$oid") or value.get("value")
+            if isinstance(candidate, str) and candidate:
+                return candidate
+    return None
+
+
+def merge_chat_logs_metadata(existing: Optional[dict], session_entry: dict, *, folder: str) -> dict:
+    base = existing or {}
+    target_folder = (base.get("folder") or folder or "").strip('/')
+    if target_folder:
+        target_folder += '/'
+    sessions = [item for item in base.get("sessions", []) if item.get("sessionId") != session_entry.get("sessionId")]
+    sessions.append(session_entry)
+    sessions.sort(key=lambda item: item.get("lastUpdated", ""), reverse=True)
+    return {
+        "folder": target_folder,
+        "sessions": sessions,
+    }
 def build_dataset_payload(job_id: str, job: JobInfo, cleaned_filename: Optional[str], store_filename: Optional[str]) -> dict:
     folder = job.directory
 
@@ -433,8 +462,9 @@ class MessageRequest(BaseModel):
 
 class ChatbotQueryRequest(BaseModel):
     question: str
-
-
+    datasetId: str
+    sessionId: Optional[str] = None
+    summary: Optional[str] = None
 
 def _extract_text_from_event(event: Any) -> str:
     content = getattr(event, "content", None)
@@ -498,7 +528,7 @@ def _serialize_agent_result(result: Any) -> Dict[str, Any]:
 
 
 @app.post("/api/chatbot/query")
-async def query_root_chatbot(payload: ChatbotQueryRequest):
+async def query_root_chatbot(request: Request, payload: ChatbotQueryRequest):
     if root_agent is None:
         detail = "Chatbot agent is not available."
         if ROOT_AGENT_LOAD_ERROR is not None:
@@ -513,18 +543,89 @@ async def query_root_chatbot(payload: ChatbotQueryRequest):
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question must not be empty.")
-    try:
-        result = await _execute_root_agent(question)
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Chatbot agent error: {exc}") from exc
+
+    token = extract_token(request)
+    claims = decode_token(token)
+    user_id = extract_user_id(claims)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token missing user id")
+
+    dataset_id = payload.datasetId.strip()
+    if not dataset_id:
+        raise HTTPException(status_code=400, detail="datasetId is required.")
+
+    dataset_detail = await request_user_service(
+        "GET",
+        f"{DATA_FOLDERS_ENDPOINT}/{dataset_id}",
+        token,
+    )
+    folder_meta = dataset_detail.get("folder") or dataset_detail
+
+    artefacts = await load_dataset_artefacts(dataset_id, dataset_detail, user_id=user_id)
+
+    chat_manager = ChatHistoryManager(
+        bucket=artefacts.bucket,
+        prefix=artefacts.gcs_prefix,
+        folder=artefacts.chat_logs_folder,
+        user_id=user_id,
+        dataset_id=dataset_id,
+        mongo_uri=CHAT_MONGO_URI,
+    )
+
+    session_id = payload.sessionId.strip() if payload.sessionId else None
+    session = None
+    if session_id:
+        session = await chat_manager.load_session(session_id)
+    if session is None:
+        session = chat_manager.create_session(session_id)
+    if payload.summary:
+        session.summary = payload.summary.strip()
+
+    session.append("user", question)
+
+    with dataset_context(artefacts, session):
+        try:
+            result = await _execute_root_agent(question)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Chatbot agent error: {exc}") from exc
+
     response_payload = _serialize_agent_result(result)
     if not isinstance(response_payload, dict):
         response_payload = {"answer": response_payload}
+
     answer_value = response_payload.get("answer")
     if isinstance(answer_value, str):
-        response_payload["answer"] = answer_value.strip()
+        answer_text = answer_value.strip()
+    else:
+        answer_text = str(answer_value) if answer_value is not None else ""
+
+    session.append("assistant", answer_text)
+
+    await chat_manager.save_session(session)
+
+    session_metadata = chat_manager.session_metadata(session)
+    dataset_session_entry = {k: v for k, v in session_metadata.items() if k not in {"bucket", "folder"}}
+    chat_logs_payload = merge_chat_logs_metadata(
+        folder_meta.get("chatLogs") if isinstance(folder_meta, dict) else None,
+        dataset_session_entry,
+        folder=artefacts.chat_logs_folder,
+    )
+
+    try:
+        await request_user_service(
+            "PATCH",
+            f"{DATA_FOLDERS_ENDPOINT}/{dataset_id}",
+            token,
+            {"chatLogs": chat_logs_payload},
+        )
+    except HTTPException:
+        pass
+
+    response_payload["answer"] = answer_text
+    response_payload["sessionId"] = session.session_id
+    response_payload["session"] = session_metadata
     return response_payload
 
 
