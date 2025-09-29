@@ -44,6 +44,7 @@ const DATA_TYPE_RELATIVE_PATHS = {
   chart_dotted: "charts/dotted_chart",
   chart_throughput_time_density: "charts/throughput_time_density",
   chart_unwanted_activity_stats: "charts/unwanted_activity_stats",
+  store: "store",
 };
 
 const sanitizeSegment = (value, fallback) => {
@@ -91,10 +92,7 @@ export const ensureUserBootstrapFolders = async ({ userId }) => {
   }
 
   const userPrefix = buildUserPrefix(userId);
-  const placeholders = [
-    `${userPrefix}/avatar/.keep`,
-    `${userPrefix}/metadata/.keep`,
-  ];
+  const placeholders = [`${userPrefix}/avatar/.keep`, `${userPrefix}/metadata/.keep`];
 
   await Promise.all(placeholders.map((objectName) => writeEmptyObject(objectName)));
 };
@@ -112,9 +110,14 @@ export const createDataObjectName = ({
   type,
   extension = "",
 }) => {
-  const datasetPrefix = buildDatasetPrefix({ userId, datasetFolder });
-  const relativePath = DATA_TYPE_RELATIVE_PATHS[type] || "others";
   const safeExt = ensureLeadingDot(extension || "");
+  const datasetPrefix = buildDatasetPrefix({ userId, datasetFolder });
+
+  if (type === "store") {
+    return `${datasetPrefix}/store/${randomId()}${safeExt}`;
+  }
+
+  const relativePath = DATA_TYPE_RELATIVE_PATHS[type] || "others";
   return `${datasetPrefix}/${relativePath}/${randomId()}${safeExt}`;
 };
 

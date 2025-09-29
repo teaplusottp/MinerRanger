@@ -1,114 +1,107 @@
 {
-  "_id": "68d579965f6eebf9f0482210",
-  "username": "a",
-  "email": "a@gmail.com",
-  "password": "$2b$10$uSANRxv3IbuR3Qv.6RNFEeLrnQIpPpPj6Feny4tE0Tzxu/8sgpGlS",
+  "_id": {
+    "$oid": "68da41a6119daefeaa60ef05"
+  },
+  "username": "thonedunglo",
+  "email": "thonedunglo@gmail.com",
+  "password": "$2b$10$4GJvTaJDxeCodmew2ZtZTOprVorQYHJTbwLhPW4VYWEl3VNoTy2zK",
   "firstName": "Tho",
   "lastName": "Le",
   "telNumber": "0123456789",
   "gender": "male",
-  "avatar": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/avatar/df9a52ae-08ce-41c1-b101-17a4e8eab62e.png",
-  "createdAt": "2025-09-25T17:19:18.661+00:00",
-  "updatedAt": "2025-09-26T03:44:38.963+00:00",
+  "avatar": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/avatar/3dbbff8979e6f2660755ef8f4506077cd1d167d1caa3e70e.png",
   "dataFolders": [
     {
-      "id": "f6e1af1e-8a24-4e90-aed5-62de0d22040c",
+      "id": "7c8b285b-8fe2-4258-81d3-24b60aa7ca88",
       "displayName": "Sepsis Cases - Event Log",
-      "uploadedAt": "2025-09-26T03:44:38.963+00:00",
-      "gcsFolder": "sepsis-cases-event-log-f6e1af1e",
-      "gcsPrefix": "user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e",
+      "uploadedAt": {
+        "$date": {
+          "$numberLong": "1759134161200"
+        }
+      },
       "files": [
-        {
-          "name": "description.txt",
-          "type": "description",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/description/fe337119-960b-43af-8650-69430b09082b.txt"
-        },
-        {
-          "name": "bpmn_model.bpmn",
-          "type": "bpmn",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/bpmn/91e98afc-7124-4852-b6c6-7c67404bb94b.bpmn"
-        },
-        {
-          "name": "report.json",
-          "type": "report",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/report/7fbe85bb-5c81-413a-9703-1350ad3db0d8.json"
-        },
         {
           "name": "Sepsis Cases - Event Log.xes.gz",
           "type": "log_raw",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/log/raw/4d818bcd-b6f2-4b79-9cb8-9c96c7c5ab74.xes.gz"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/log/raw/a2df987b-9e34-4ec2-aff7-f59519907810.gz"
         },
         {
           "name": "Sepsis Cases - Event Log_cleaned.xes",
           "type": "log_cleaned",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/log/cleaned/3a1d2d9a-6be4-41d2-8e29-9f4c779a3a7a.xes"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/log/cleaned/1a13fb5d-2da7-4209-8c7f-413e3a9ce875.xes"
         },
-        {
-          "name": "dotted_chart.png",
-          "type": "chart_dotted",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/charts/dotted_chart/f2eab2bb-5637-44d8-81df-194a8e44512c.png"
-        },
-        {
-          "name": "throughput_time_density.png",
-          "type": "chart_throughput_time_density",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/charts/throughput_time_density/a02f7f16-8613-4ea8-a2a7-f1cfb0fa7c54.png"
-        },
-        {
-          "name": "unwanted_activity_stats.png",
-          "type": "chart_unwanted_activity_stats",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/charts/unwanted_activity_stats/340184cc-5dbe-4b47-87ed-1dc4cf1e24ae.png"
-        }
-      ]
-    },
-    {
-      "id": "2b9e38b5-93ed-4a2d-b8a3-f19ff7d0b8d0",
-      "displayName": "Statechart Workbench and Alignments Software Event Log",
-      "uploadedAt": "2025-09-26T05:01:13.413+00:00",
-      "gcsFolder": "statechart-workbench-and-alignments-software-event-log-2b9e38b5",
-      "gcsPrefix": "user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5",
-      "files": [
         {
           "name": "description.txt",
           "type": "description",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/description/8cda39c8-81f4-4ec2-8d0e-2e36f69e917e.txt"
-        },
-        {
-          "name": "bpmn_model.bpmn",
-          "type": "bpmn",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/bpmn/5eb52c2b-3662-4a82-8a19-d5f9e81e3bce.bpmn"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/description/a190c43a-4f97-46fd-9fdf-621dbd0092fb.txt"
         },
         {
           "name": "report.json",
           "type": "report",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/report/ff7a6100-8c7d-4d9f-b69f-82c10e7052c8.json"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/report/ea45327f-3abe-4a28-b6d0-ce79d7554cf4.json"
         },
         {
-          "name": "Statechart Workbench and Alignments Software Event Log.xes.gz",
-          "type": "log_raw",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/log/raw/bae3a7be-4c81-4cc1-980e-68cf5f4e4bb9.xes.gz"
-        },
-        {
-          "name": "Statechart Workbench and Alignments Software Event Log_cleaned.xes",
-          "type": "log_cleaned",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/log/cleaned/2622b9c2-5d98-43ab-b7a3-01cb5fef2823.xes"
+          "name": "store.json",
+          "type": "store",
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/store/78cb9f83-cfc5-4ab5-8716-7f1dd7c8e1b7.json"
         },
         {
           "name": "dotted_chart.png",
           "type": "chart_dotted",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/charts/dotted_chart/2f7b5ef3-fb30-4e08-a71b-02347b6b6a45.png"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/charts/dotted_chart/cf7c551c-b69d-4f3e-b289-dfaf62c210f7.png"
         },
         {
           "name": "throughput_time_density.png",
           "type": "chart_throughput_time_density",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/charts/throughput_time_density/7e0df5bc-cd47-4b9b-bf4a-8ad8ad50e9df.png"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/charts/throughput_time_density/89e73a3c-0112-4fef-af69-5ab149670db3.png"
         },
         {
           "name": "unwanted_activity_stats.png",
           "type": "chart_unwanted_activity_stats",
-          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/charts/unwanted_activity_stats/bd20b8d1-43ea-4c42-b3ca-ef384f83e86b.png"
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/charts/unwanted_activity_stats/ffdf6823-789e-433d-ada5-d5b3ffd80328.png"
+        },
+        {
+          "name": "bpmn_model.bpmn",
+          "type": "bpmn",
+          "url": "https://storage.googleapis.com/minerranger/user/68da41a6119daefeaa60ef05/metadata/sepsis-cases-event-log-7c8b285b/bpmn/22705603-c549-4a58-a01f-800a62c37317.bpmn"
         }
-      ]
+      ],
+      "chatLogs": {
+        "folder": "chat_logs/",
+        "sessions": [
+          {
+            "sessionId": "session-20240929-090100",
+            "file": "chat_logs/session-20240929-090100.json",
+            "startedAt": "2024-09-29T09:01:00Z",
+            "endedAt": "2024-09-29T09:11:30Z",
+            "numTurns": 10,
+            "lastUpdated": "2024-09-29T09:11:30Z",
+            "summary": "Phân tích tổng quan dữ liệu Sepsis."
+          },
+          {
+            "sessionId": "session-20240928-150500",
+            "file": "chat_logs/session-20240928-150500.json",
+            "startedAt": "2024-09-28T15:05:00Z",
+            "endedAt": "2024-09-28T15:28:47Z",
+            "numTurns": 15,
+            "lastUpdated": "2024-09-28T15:28:47Z",
+            "summary": "Chatbot trả lời về các chỉ số bất thường và báo cáo process mining."
+          }
+        ]
+      }
     }
   ],
-  "__v": 0
+  "createdAt": {
+    "$date": {
+      "$numberLong": "1759134118692"
+    }
+  },
+  "updatedAt": {
+    "$date": {
+      "$numberLong": "1759139639637"
+    }
+  },
+  "__v": {
+    "$numberInt": "1"
+  }
 }
