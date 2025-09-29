@@ -1,85 +1,98 @@
 import json
+import os
+from typing import Any, Dict
+
 from google import genai
-from .__init__ import *   # lấy GEMINI_API_KEY,...
 
-# Tạo client
-client = genai.Client(api_key=GEMINI_API_KEY_1)
+from .__init__ import GEMINI_API_KEY as DEFAULT_GEMINI_API_KEY
 
-def get_embedding(text: str):
-    """
-    Sinh embedding cho một đoạn văn bản bằng mô hình Gemini.
+API_KEY = os.getenv("GEMINI_API_KEY", DEFAULT_GEMINI_API_KEY)
 
-    Inputs:
-        text (str): Nội dung văn bản cần sinh embedding.
+_client: genai.Client | None = None
 
-    Outputs:
-        list[float]: Vector embedding (list số thực). 
-                     Nếu text rỗng thì trả về list rỗng.
 
-    Purpose:
-        Chuẩn hóa bước lấy embedding từ text để tái sử dụng trong toàn bộ pipeline.
-    """
-    if not text or not str(text).strip():
+def _get_client() -> genai.Client:
+    global _client
+    if not API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured")
+    if _client is None:
+        _client = genai.Client(api_key=API_KEY)
+    return _client
+
+
+def _text_from_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        return "\n".join(map(str, value))
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)
+
+
+def get_embedding(text: str) -> list[float]:
+    if not text or not text.strip():
         return []
+    client = _get_client()
     result = client.models.embed_content(
         model="gemini-embedding-001",
-        contents=str(text)
+        contents=text,
     )
     return result.embeddings[0].values
 
-def build_store(folder_path) -> dict:
-    """
-    Đọc report.json, sinh embeddings cho từng section, và lưu thành store.json.
 
-    Inputs:
-        folder_path (str): Đường dẫn thư mục chứa file report.json. 
-                    (Hàm sẽ đọc <folder_path>/report.json và ghi <folder_path>/store.json).
+def build_store(folder_path: str) -> str:
+    if not folder_path:
+        raise ValueError("folder_path must be provided")
+    report_path = os.path.join(folder_path, "report.json")
+    if not os.path.isfile(report_path):
+        raise FileNotFoundError(f"report.json not found in {folder_path}")
 
-    Cấu trúc store.json:
-        dict: Cấu trúc dữ liệu đã sinh embedding.
-        keys:
-            - description (list[float])
-            - dataset_overview (list[float])
-            - basic_statistics (dict)
-            - process_discovery (dict)
-            - performance_analysis (dict)
-            - conformance_checking (dict)
-            - enhancement (dict)
-            - Q&A (dict[str, dict])
-                - Question (list[float])
-                - Answer (list[float])
-        
-        Output: True: nếu tạo thành công
+    with open(report_path, "r", encoding="utf-8") as f:
+        report: Dict[str, Any] = json.load(f)
 
-    Purpose:
-        Tự động chuyển đổi nội dung báo cáo (report.json) thành vector embeddings 
-        và lưu lại trong file store.json để dùng cho các tác vụ tìm kiếm, 
-        so sánh cosine similarity hoặc truy vấn ngữ nghĩa.
-    """
-    with open(folder_path + 'report.json', "r", encoding="utf-8") as f:
-        report = json.load(f)
-
-    # Khung dữ liệu
-    store = {
-        "description": get_embedding(report.get("description", "")),
-        "dataset_overview": "",
-        "basic_statistics": "",
-        "process_discovery": "",
-        "performance_analysis": "",
-        "conformance_checking": "",
-        "enhancement": "",
-        "Q&A": {}
+    store: Dict[str, Any] = {
+        "description": get_embedding(_text_from_value(report.get("description"))),
+        "dataset_overview": [],
+        "basic_statistics": [],
+        "process_discovery": [],
+        "performance_analysis": [],
+        "conformance_checking": [],
+        "enhancement": [],
+        "Q&A": {},
     }
 
-    # Xử lý các section
-    # for key in ["description", "dataset_overview", "basic_statistics", "process_discovery", "performance_analysis", "conformance_checking", "enhancement"]:
-    for key in ["dataset_overview", "basic_statistics", "process_discovery", "performance_analysis", "conformance_checking", "enhancement"]:
+    section_keys = [
+        "dataset_overview",
+        "basic_statistics",
+        "process_discovery",
+        "performance_analysis",
+        "conformance_checking",
+        "enhancement",
+    ]
+
+    for key in section_keys:
+        section = report.get(key) or {}
         if key == "dataset_overview":
-            store[key] = get_embedding(str(report.get(key, "")))
-        store[key] = get_embedding(str(report.get(key, "").get("insights", "")))
-    
-    # Lưu file
-    with open(folder_path + "store.json", "w", encoding="utf-8") as f:
+            store[key] = get_embedding(_text_from_value(section))
+        else:
+            insights_text = _text_from_value(section.get("insights")) if isinstance(section, dict) else _text_from_value(section)
+            store[key] = get_embedding(insights_text)
+
+    qa_section = report.get("Q&A") or {}
+    if isinstance(qa_section, dict):
+        for question, item in qa_section.items():
+            if not isinstance(item, dict):
+                continue
+            question_text = _text_from_value(question)
+            answer_text = _text_from_value(item.get("Answer"))
+            store["Q&A"][question_text] = {
+                "Question": get_embedding(question_text),
+                "Answer": get_embedding(answer_text),
+            }
+
+    store_path = os.path.join(folder_path, "store.json")
+    with open(store_path, "w", encoding="utf-8") as f:
         json.dump(store, f, ensure_ascii=False, indent=2)
 
-    return True
+    return store_path

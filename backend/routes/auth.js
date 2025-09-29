@@ -316,6 +316,7 @@ const SUPPORTED_DATA_TYPES = new Set([
   "chart_dotted",
   "chart_throughput_time_density",
   "chart_unwanted_activity_stats",
+  "store",
 ]);
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);

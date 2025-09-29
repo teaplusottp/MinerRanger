@@ -53,6 +53,7 @@ else:
 from process.WebSocketLogger import WebSocketLogger
 from process.generate_cleaned import clean_and_save_logs
 from process.generate_json import gen_report
+from process.generate_store import build_store
 from process.__init__ import GEMINI_API_KEY
 
 # ===================== App config =====================
@@ -124,7 +125,7 @@ def decode_token(token: str) -> dict:
     except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
-def build_dataset_payload(job_id: str, job: JobInfo, cleaned_filename: Optional[str]) -> dict:
+def build_dataset_payload(job_id: str, job: JobInfo, cleaned_filename: Optional[str], store_filename: Optional[str]) -> dict:
     folder = job.directory
 
     def file_entry(file_type: str, filename: str) -> Optional[dict]:
@@ -156,6 +157,11 @@ def build_dataset_payload(job_id: str, job: JobInfo, cleaned_filename: Optional[
     report_entry = file_entry("report", "report.json")
     if report_entry:
         files.append(report_entry)
+
+    if store_filename:
+        store_entry = file_entry("store", store_filename)
+        if store_entry:
+            files.append(store_entry)
 
     for chart_type, filename in (
         ("chart_dotted", "dotted_chart.png"),
@@ -361,6 +367,7 @@ async def ws_upload(ws: WebSocket):
     sender_task = asyncio.create_task(sender())
 
     dataset_payload: Optional[dict] = None
+    store_filename: Optional[str] = None
 
     try:
         folder_path = job_info.directory
@@ -375,7 +382,11 @@ async def ws_upload(ws: WebSocket):
         if not report_success:
             raise RuntimeError("Failed to generate report")
 
-        dataset_payload = build_dataset_payload(job_id, job_info, cleaned_filename)
+        print("[i] Generating store.json from report")
+        store_path = await asyncio.to_thread(build_store, folder_path)
+        store_filename = os.path.basename(store_path)
+
+        dataset_payload = build_dataset_payload(job_id, job_info, cleaned_filename, store_filename)
         dataset_record = await request_user_service(
             "POST",
             DATA_FOLDERS_ENDPOINT,
