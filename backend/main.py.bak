@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import contextlib
 import json
 import os
@@ -65,7 +65,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "demo")
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 
 if not os.path.exists(STATIC_DIR):
-    raise RuntimeError(f"Static folder does not exist: {STATIC_DIR}")
+    raise RuntimeError(f"Folder static không t?n t?i: {STATIC_DIR}")
 
 app = FastAPI()
 
@@ -239,7 +239,7 @@ async def get_databases(request: Request):
     return {"databases": data.get("folders", [])}
 
 @app.get("/graph")
-async def get_graph(request: Request, db: str = Query(..., description="Data ID")):
+async def get_graph(request: Request, db: str = Query(..., description="ID d? li?u")):
     token = extract_token(request)
     _ = decode_token(token)
 
@@ -264,7 +264,7 @@ async def get_graph(request: Request, db: str = Query(..., description="Data ID"
     return JSONResponse(content=report_data)
 
 @app.get("/stats")
-async def get_stats(request: Request, db: str = Query(..., description="Data ID")):
+async def get_stats(request: Request, db: str = Query(..., description="ID d? li?u")):
     token = extract_token(request)
     _ = decode_token(token)
 
@@ -291,7 +291,7 @@ async def upload_file(
     if not (file.filename.endswith(".xes") or file.filename.endswith(".xes.gz")):
         return JSONResponse(
             status_code=400,
-            content={"error": "Only .xes or .xes.gz files are accepted"},
+            content={"error": "Ch? ch?p nh?n file .xes ho?c .xes.gz"},
         )
 
     token = extract_token(request)
@@ -327,7 +327,7 @@ async def upload_file(
     JOB_REGISTRY[job_id] = job_info
 
     return {
-        "message": "Upload sucessfully, starting processing",
+        "message": "? Upload thành công, b?t d?u x? lý",
         "filename": file.filename,
         "folder": job_id,
         "jobId": job_id,
@@ -419,7 +419,7 @@ async def ws_upload(ws: WebSocket):
 @app.get("/api/sidebar")
 def get_sidebar():
     return {
-        "history": ["Conversation 1", "Conversation 2"],
+        "history": ["Cu?c trò chuy?n 1", "Cu?c trò chuy?n 2"],
         "groups": {"Datasets": ["Dataset 1", "Dataset 2", "Dataset 3"]},
     }
 
@@ -462,15 +462,9 @@ async def _execute_root_agent(question: str) -> Dict[str, Any]:
     events: list[Any] = []
 
     async with runner:
-        session_id = str(uuid.uuid4())
-        await runner.session_service.create_session(
-            app_name=runner.app_name,
-            user_id="web-client",
-            session_id=session_id,
-        )
         async for event in runner.run_async(
             user_id="web-client",
-            session_id=session_id,
+            session_id=str(uuid.uuid4()),
             new_message=new_message,
         ):
             events.append(event)
@@ -540,7 +534,7 @@ def get_chat(chat_id: int):
 def create_chat():
     global chat_counter
     chats[chat_counter] = [
-        {"role": "bot", "text": "Hello, let's start a new conversation!"}
+        {"role": "bot", "text": "Xin chào b?n, b?t d?u cu?c trò chuy?n m?i nhé!"}
     ]
     chat_counter += 1
     return {"id": chat_counter - 1, "name": f"Chat {chat_counter - 1}"}
@@ -548,9 +542,9 @@ def create_chat():
 @app.post("/chats/{chat_id}/send")
 def send_message(chat_id: int, req: MessageRequest):
     if chat_id not in chats:
-        return {"reply": "Chat does not exist."}
+        return {"reply": "Chat không t?n t?i."}
     chats[chat_id].append({"role": "user", "text": req.message})
-    reply = f"Bot replied: {req.message}"
+    reply = f"Bot tr? l?i: {req.message}"
     chats[chat_id].append({"role": "bot", "text": reply})
     return {"reply": reply}
 

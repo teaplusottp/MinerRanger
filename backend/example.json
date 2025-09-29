@@ -15,8 +15,6 @@
       "id": "f6e1af1e-8a24-4e90-aed5-62de0d22040c",
       "displayName": "Sepsis Cases - Event Log",
       "uploadedAt": "2025-09-26T03:44:38.963+00:00",
-      "gcsFolder": "sepsis-cases-event-log-f6e1af1e",
-      "gcsPrefix": "user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e",
       "files": [
         {
           "name": "description.txt",
@@ -32,6 +30,11 @@
           "name": "report.json",
           "type": "report",
           "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/report/7fbe85bb-5c81-413a-9703-1350ad3db0d8.json"
+        },
+        {
+          "name": "store.json",
+          "type": "store",
+          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/sepsis-cases-event-log-f6e1af1e/store/78cb9f83-cfc5-4ab5-8716-7f1dd7c8e1b7.json"
         },
         {
           "name": "Sepsis Cases - Event Log.xes.gz",
@@ -64,8 +67,6 @@
       "id": "2b9e38b5-93ed-4a2d-b8a3-f19ff7d0b8d0",
       "displayName": "Statechart Workbench and Alignments Software Event Log",
       "uploadedAt": "2025-09-26T05:01:13.413+00:00",
-      "gcsFolder": "statechart-workbench-and-alignments-software-event-log-2b9e38b5",
-      "gcsPrefix": "user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5",
       "files": [
         {
           "name": "description.txt",
@@ -81,6 +82,11 @@
           "name": "report.json",
           "type": "report",
           "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/report/ff7a6100-8c7d-4d9f-b69f-82c10e7052c8.json"
+        },
+        {
+          "name": "store.json",
+          "type": "store",
+          "url": "https://storage.googleapis.com/minerranger/user/68d579965f6eebf9f0482210/metadata/statechart-workbench-and-alignments-software-event-log-2b9e38b5/store/1a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d.json"
         },
         {
           "name": "Statechart Workbench and Alignments Software Event Log.xes.gz",

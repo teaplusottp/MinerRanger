@@ -22,7 +22,7 @@ root_agent = LlmAgent(
     Quy trình làm việc của bạn như sau:
 
     1. **Luôn gọi tool `semantic_search` trước tiên**:
-        - path = "./root_agent/"
+        - path = "./chatbot/root_agent/"
         - question = <truy vấn của user>
         - top_k = 2
     2. Nếu `semantic_search` tìm thấy câu trả lời:

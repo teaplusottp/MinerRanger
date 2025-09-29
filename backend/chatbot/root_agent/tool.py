@@ -1,6 +1,9 @@
 import json
+from pathlib import Path
 from google import genai
 import numpy as np
+
+MODULE_DIR = Path(__file__).resolve().parent
 
 client = genai.Client()
 
@@ -43,15 +46,24 @@ def semantic_search(path: str, question: str, top_k: int = 2):
         Cho phép truy vấn ngữ nghĩa (semantic search) dựa trên embeddings 
         đã lưu trong store.json.
     """
+    base_dir = Path(path)
+    if base_dir.is_file():
+        base_dir = base_dir.parent
+    if not base_dir.is_dir():
+        base_dir = MODULE_DIR
+
+    store_path = base_dir / "store.json"
+    report_path = base_dir / "report.json"
+
     # Load dữ liệu store.json
-    with open(path + "store.json", "r", encoding="utf-8") as f1:
+    with store_path.open("r", encoding="utf-8") as f1:
         store = json.load(f1)
 
     # Sinh embedding cho câu hỏi
     query_embedding = get_embedding(question)
 
     result = []
-    
+
     result.append({"field_name": "description", "similarity": cosine_similarity(query_embedding, store["description"])})
     result.append({"field_name": "dataset_overview", "similarity": cosine_similarity(query_embedding, store["dataset_overview"])})
     result.append({"field_name": "basic_statistic", "similarity": cosine_similarity(query_embedding, store["basic_statistics"])})
@@ -63,7 +75,7 @@ def semantic_search(path: str, question: str, top_k: int = 2):
 
     # Sắp xếp theo similarity giảm dần
     result = sorted(result, key=lambda x: x["similarity"], reverse=True)
-    with open(path + "report.json", "r", encoding="utf-8") as f2:
+    with report_path.open("r", encoding="utf-8") as f2:
         data = json.load(f2)
 
     return data.get(result[0]["field_name"], {}), data.get(result[1]["field_name"], {})
