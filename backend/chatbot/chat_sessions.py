@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import List, Optional
 
@@ -68,7 +68,7 @@ class ChatSession:
             "datasetId": self.dataset_id,
             "startedAt": self.started_at,
             "lastUpdated": self.last_updated,
-            "messages": [message.__dict__ for message in self.messages],
+            "messages": [asdict(message) for message in self.messages],
             "summary": self.summary or "",
         }
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
+import logging
 
 import numpy as np
 from google import genai
@@ -10,6 +11,8 @@ from google import genai
 from chatbot.dataset_context import get_dataset_context
 
 MODULE_DIR = Path(__file__).resolve().parent
+
+logger = logging.getLogger(__name__)
 
 _client = genai.Client()
 
@@ -19,11 +22,22 @@ def get_embedding(text: str):
 
     if not text or not text.strip():
         return []
-    result = _client.models.embed_content(
-        model="gemini-embedding-001",
-        contents=text,
-    )
-    return result.embeddings[0].values
+    try:
+        result = _client.models.embed_content(
+            model="gemini-embedding-001",
+            contents=text,
+        )
+    except Exception as exc:
+        logger.warning("Embedding request failed: %s", exc)
+        return []
+
+    embeddings = getattr(result, "embeddings", None)
+    if not embeddings:
+        return []
+    values = getattr(embeddings[0], "values", None)
+    if not values:
+        return []
+    return values
 
 
 def cosine_similarity(vec1, vec2):

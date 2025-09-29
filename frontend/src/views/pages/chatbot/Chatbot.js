@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { CAlert, CButton, CForm, CFormInput } from '@coreui/react'
 
+import { useDb } from '../../../context/DbContext'
 import { askChatbot, extractChatbotError } from '../../../services/chatbotService'
 
 const createTimestamp = () => new Date().toISOString()
@@ -18,7 +19,28 @@ const deriveAnswerText = (payload) => {
   return JSON.stringify(payload)
 }
 
+const sanitizeSummary = (value, fallback = '') => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (trimmed.length) {
+      return trimmed
+    }
+  }
+  return fallback
+}
+
+const createConversationRecord = (id, name, datasetId = '') => ({
+  id,
+  name,
+  datasetId,
+  sessionId: null,
+  session: null,
+  summary: name,
+  messages: [],
+})
+
 const Chatbot = () => {
+  const { selectedDb } = useDb()
   const nextIdRef = useRef(1)
   const scrollRef = useRef(null)
   const [conversations, setConversations] = useState([])
@@ -30,7 +52,7 @@ const Chatbot = () => {
   useEffect(() => {
     if (conversations.length === 0) {
       const newChatId = nextIdRef.current++
-      setConversations([{ id: newChatId, name: 'Cuoc tro chuyen 1', messages: [] }])
+      setConversations([createConversationRecord(newChatId, 'Cuoc tro chuyen 1')])
       setCurrentChatId(newChatId)
     } else if (!currentChatId) {
       setCurrentChatId(conversations[0].id)
@@ -50,13 +72,33 @@ const Chatbot = () => {
     }
   }, [messages])
 
-  const pushMessage = (chatId, newMessage) => {
+  const pushMessage = (chatId, newMessage, baseConversation) => {
+    setConversations((prev) => {
+      const existing = prev.find((conversation) => conversation.id === chatId)
+      const target = existing || baseConversation
+      if (!target) {
+        return prev
+      }
+      const updated = {
+        ...target,
+        messages: [...(target.messages || []), newMessage],
+      }
+      if (existing) {
+        return prev.map((conversation) => (conversation.id === chatId ? updated : conversation))
+      }
+      return [...prev, updated]
+    })
+  }
+
+  const updateConversation = (chatId, producer) => {
     setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === chatId
-          ? { ...conversation, messages: [...conversation.messages, newMessage] }
-          : conversation,
-      ),
+      prev.map((conversation) => {
+        if (conversation.id !== chatId) {
+          return conversation
+        }
+        const nextConversation = producer(conversation)
+        return nextConversation || conversation
+      }),
     )
   }
 
@@ -68,7 +110,9 @@ const Chatbot = () => {
   const handleCreateConversation = () => {
     const newChatId = nextIdRef.current++
     const name = `Cuoc tro chuyen ${conversations.length + 1}`
-    setConversations((prev) => [...prev, { id: newChatId, name, messages: [] }])
+    const datasetId = typeof selectedDb === 'string' ? selectedDb.trim() : ''
+    const newConversation = createConversationRecord(newChatId, name, datasetId)
+    setConversations((prev) => [...prev, newConversation])
     setCurrentChatId(newChatId)
     setInputValue('')
     setError(null)
@@ -93,22 +137,55 @@ const Chatbot = () => {
       return
     }
 
+    const activeDatasetId = typeof selectedDb === 'string' ? selectedDb.trim() : ''
+    if (!activeDatasetId.length) {
+      setError('Vui long chon dataset truoc khi tro chuyen.')
+      return
+    }
+
     let chatId = currentChatId
-    if (!chatId) {
+    let conversationRecord = currentConversation
+
+    if (!chatId || !conversationRecord) {
       chatId = nextIdRef.current++
       const name = `Cuoc tro chuyen ${conversations.length + 1 || 1}`
-      setConversations((prev) => [...prev, { id: chatId, name, messages: [] }])
+      conversationRecord = createConversationRecord(chatId, name, activeDatasetId)
       setCurrentChatId(chatId)
+    } else if ((conversationRecord.datasetId || '').trim() !== activeDatasetId) {
+      conversationRecord = { ...conversationRecord, datasetId: activeDatasetId }
+      updateConversation(chatId, (existing) => ({ ...existing, datasetId: activeDatasetId }))
     }
 
     const userMessage = { role: 'user', text: trimmed, timestamp: createTimestamp() }
-    pushMessage(chatId, userMessage)
+    pushMessage(chatId, userMessage, conversationRecord)
     setInputValue('')
     setIsSending(true)
     setError(null)
 
     try {
-      const response = await askChatbot(trimmed)
+      const response = await askChatbot({
+        question: trimmed,
+        datasetId: conversationRecord.datasetId || activeDatasetId,
+        sessionId: conversationRecord.sessionId,
+        summary: conversationRecord.summary || conversationRecord.name,
+      })
+      const nextSummary = sanitizeSummary(
+        response?.session?.summary,
+        conversationRecord.summary || conversationRecord.name,
+      )
+      const nextSessionId =
+        typeof response?.sessionId === 'string' && response.sessionId.trim().length
+          ? response.sessionId
+          : conversationRecord.sessionId
+
+      updateConversation(chatId, (existing) => ({
+        ...existing,
+        datasetId: conversationRecord.datasetId || activeDatasetId,
+        sessionId: nextSessionId,
+        session: response?.session || existing.session,
+        summary: nextSummary,
+      }))
+
       pushMessage(chatId, {
         role: 'bot',
         text: deriveAnswerText(response),
