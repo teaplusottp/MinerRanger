@@ -12,26 +12,32 @@ const toStaticUrl = (u) => {
   return `http://localhost:8000/static/${s}`;
 };
 
-const splitInsight = (insight, accent = "#ff6f61") =>
-  insight
-    ? insight
-        .split(/(?<=\.)\s+|(?<=\.)\n+/)
-        .filter((line) => line.trim() !== "")
-        .map((line, idx) => (
-          <div
-            key={idx}
-            style={{
-              marginBottom: "6px",
-              padding: "8px 12px",
-              borderLeft: `4px solid ${accent}`,
-              background: `${accent}22`,
-              borderRadius: "6px",
-            }}
-          >
-            {line}
-          </div>
-        ))
-    : null;
+const splitInsight = (insight, accent = "#ff6f61") => {
+  if (!insight) return null;
+
+  // Tách theo marker '|||', nếu không có marker thì giữ nguyên
+  const blocks = insight.includes("|||") 
+    ? insight.split("|||")
+    : [insight];
+
+  return blocks
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .map((line, idx) => (
+      <div
+        key={idx}
+        style={{
+          marginBottom: "6px",
+          padding: "8px 12px",
+          borderLeft: `4px solid ${accent}`,
+          background: `${accent}22`,
+          borderRadius: "6px",
+        }}
+      >
+        {line}
+      </div>
+    ));
+};
 
 const titleCase = (str = "") =>
   String(str)

@@ -57,8 +57,8 @@ from process.generate_store import build_store
 from chatbot.chat_sessions import ChatHistoryManager
 from chatbot.dataset_context import dataset_context
 from chatbot.dataset_loader import load_dataset_artefacts
-from process.__init__ import GEMINI_API_KEY
-
+# from process.__init__ import GEMINI_API_KEY
+GEMINI_API_KEY= os.getenv("GEMINI_API_KEY")
 # ===================== App config =====================
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))

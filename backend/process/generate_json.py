@@ -128,7 +128,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Dùng dữ liệu được cung cấp để tạo mô tả chi tiết cho biểu đồ (insight). 
     - Tối đa 200 chữ, tiếng Việt.
-
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
     Dưới đây là dữ liệu đầu vào (dữ liệu gốc đã dùng để vẽ biểu đồ):
 
     {activities_frequency['concept:name'], activities_frequency['count']}
@@ -172,6 +172,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Sử dụng dữ liệu được cung cấp để tạo phần mô tả chi tiết cho biểu đồ (insight). 
     - Tối đa 200 chữ, tiếng Việt.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
     Dưới đây là dữ liệu đầu vào (dữ liệu gốc đã dùng để vẽ biểu đồ):
 
     {top_k_variant_names, top_k_variant_counts}
@@ -188,7 +189,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     3. Kết quả trả về là 1 đoạn text duy nhất, không quá 300 chữ, viết bằng tiếng Việt.
     4. Ngôn từ chuẩn mực và chuyên nghiệp, đây là 1 phần trong 1 bài báo cáo.
     5. Lưu ý không đưa ra gợi ý cải tiến, phần này không thuộc chức năng của bạn.
-
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là dữ liệu đầu vào (dữ liệu gốc để bạn phân tích và nhận xét):
     {{
@@ -234,7 +235,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
         3. Kết quả trả về là 1 đoạn text duy nhất, không quá 300 chữ, viết bằng tiếng Việt.
         4. Ngôn từ chuẩn mực và chuyên nghiệp, đây là 1 phần trong 1 bài báo cáo.
         5. Lưu ý không đưa ra gợi ý cải tiến, phần này không thuộc chức năng của bạn.
-
+        - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
         Đầu vào: 
         - {path + 'bpmn_model.png'}
@@ -278,7 +279,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Dùng dữ liệu được cung cấp để tạo mô tả chi tiết và đưa ra nhận xét cho biểu đồ (insight). 
     - Tối đa 200 chữ, tiếng Việt.
-
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
     Dưới đây là biểu đồ cần mô tả và nhận xét:
 
     {path + "throughput_time_density.png"}
@@ -306,6 +307,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Dùng dữ liệu được cung cấp để tạo mô tả chi tiết và đưa ra nhận xét cho biểu đồ (insight). 
     - Tối đa 200 chữ, tiếng Việt.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là biểu đồ cần mô tả và nhận xét:
 
@@ -323,6 +325,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Dùng dữ liệu được cung cấp để tạo mô tả chi tiết và đưa ra nhận xét cho temporal profile của qui trình (insights).
     - Tối đa 200 chữ, tiếng Việt.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là temporal profile cần mô tả và nhận xét, gồm các thông số (From, To, Mean (days), Std (days)): 
 
@@ -340,6 +343,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     3. Kết quả trả về là 1 đoạn text duy nhất, không quá 300 chữ.
     4. Ngôn từ chuẩn mực và chuyên nghiệp, đây là 1 phần trong 1 bài báo cáo.
     5. Lưu ý không đưa ra gợi ý cải tiến, phần này không thuộc chức năng của bạn.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là dữ liệu đầu vào (dữ liệu gốc để bạn phân tích và nhận xét):
     {{
@@ -401,6 +405,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Dùng dữ liệu được cung cấp để tạo mô tả chi tiết và đưa ra nhận xét cho các cạnh vi phạm qui trình chuẩn (nghĩa là không có trong qui trình chuẩn).
     - Tối đa 200 chữ, tiếng Việt.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là thông tin được cung cấp:  
 
@@ -445,6 +450,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     Nhiệm vụ của bạn: 
     - Dùng dữ liệu được cung cấp để tạo mô tả chi tiết và đưa ra nhận xét cho các hoạt động vi phạm qui trình chuẩn (nghĩa là không có trong qui trình chuẩn).
     - Tối đa 200 chữ, tiếng Việt.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là thông tin được cung cấp:  
 
@@ -462,6 +468,7 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     3. Kết quả trả về là 1 đoạn text duy nhất, không quá 300 chữ.
     4. Ngôn từ chuẩn mực và chuyên nghiệp, đây là 1 phần trong 1 bài báo cáo.
     5. Lưu ý không đưa ra gợi ý cải tiến, phần này không thuộc chức năng của bạn.
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
 
     Dưới đây là dữ liệu đầu vào (dữ liệu gốc để bạn phân tích và nhận xét):
     {{
@@ -492,7 +499,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     1. Trình bày các hạn chế của qui trình đang có (150 chữ)
     2. Đưa ra cải tiến để giải quyét các hạn chế trên. Cải tiến cần logic và khả thi (250 chữ).
     3. Ngôn từ chuẩn mực và chuyên nghiệp, đây là 1 phần trong 1 bài báo cáo.
-
+    - Nếu cần chia đoạn, hãy dùng ký tự đặc biệt `|||` để đánh dấu đoạn mới.  
+    
     Dưới đây là dữ liệu đầu vào (dữ liệu gốc để bạn phân tích và nhận xét):
     - Thông tin về qui trình đang xét: {input_file_name}, mô tả: {description_text}
     - Thống kê cơ bản: {basic_statistics_insight}
