@@ -28,6 +28,7 @@ from pm4py.algo.conformance.tokenreplay import algorithm as token_based_replay
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from tqdm.auto import tqdm
 
 async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API_KEY, path):
     # ================== Helper functions ==================
@@ -59,6 +60,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
         return response.text
     
     # Đọc file description
+    progress_bar = tqdm(total=8, desc="Generating report", unit="phase")
+    progress_bar.set_postfix_str("Reading description")
     with open(description_file_name, 'r', encoding='utf-8') as f:
         description_text = f.read()
 
@@ -86,11 +89,15 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     start_end_times_text = await call_gemini(find_start_end_times, GEMINI_API_KEY)
     start_end_times = await extract_json_between_braces(start_end_times_text)
     print('Trích xuất start_end_times.')
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Loading logs")
 
     # ================== LOAD DATASET ==================
     logs = pm4py.read_xes(input_file_name)
     print('Load clean dataset.')
     df_logs = pm4py.convert_to_dataframe(logs)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Basic statistics")
 
     # ================== BASIC STATISTICS ==================
     print('1. Basic Statistics.')
@@ -203,6 +210,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     }}
     """
     basic_statistics_insight = await call_gemini(basic_statistics_prompt, GEMINI_API_KEY)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Process discovery")
 
     # ================== PROCESS DISCOVERY ==================
     print('2. Process Discovery.')
@@ -233,6 +242,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
         - Thống kê hiệu năng: {dfg_perf} (đơn vị: ngày).
     """
     process_map_insight = await call_gemini(process_map_prompt, GEMINI_API_KEY)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Performance analysis")
     
     # ================== PERFORMANCE ANALYSIS ==================
     print('3. Performance Analysis.')
@@ -354,6 +365,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     }}
     """
     performance_analysis_insight = await call_gemini(performance_analysis_prompt, GEMINI_API_KEY)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Conformance checking")
     
     # ================== CONFORMANCE CHECKING ==================
     print('4. Conformance Checking.')
@@ -467,6 +480,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     }}
     """
     conformance_checking_insight = await call_gemini(conformance_checking_prompt, GEMINI_API_KEY)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Enhancement insights")
     # ================== ENHANCEMENT ==================
     print('5. Enhancement.')
     enhancement_prompt = f"""
@@ -486,6 +501,8 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     - Phân tích độ tuân thủ: {conformance_checking_insight}
     """
     enhancement_insight = await call_gemini(enhancement_prompt, GEMINI_API_KEY)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Saving report")
     # ================== SAVE REPORT ==================
     print('6. Save report.json.')
     # Hàm ép keys về str và convert numpy types -> Python native
@@ -616,6 +633,9 @@ async def analysis_event_logs(input_file_name, description_file_name, GEMINI_API
     # Cuối cùng: dump ra JSON
     with open(path + "report.json", "w", encoding="utf-8") as f:
         json.dump(await safe_json(report), f, indent=4, ensure_ascii=False)
+    progress_bar.update(1)
+    progress_bar.set_postfix_str("Completed")
+    progress_bar.close()
 
     return True
 

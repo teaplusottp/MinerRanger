@@ -22,6 +22,9 @@ import {
 import { useDb } from '/src/context/DbContext.js'
 import { useLocation, useNavigate } from 'react-router-dom'
 import avatarUser from '../assets/images/avatars/1.jpg'
+import filledIcon from '../assets/images/filled.png'
+import editIcon from '../assets/images/edit.png'
+import deleteIcon from '../assets/images/delete.png'
 
 const AUTH_TOKEN_KEY = 'minerranger.authToken'
 const AUTH_USER_KEY = 'minerranger.user'
@@ -71,6 +74,8 @@ const AppHeader = ({ onOpenChat }) => {
   const [logMessages, setLogMessages] = useState([])   // ðŸ‘ˆ log state
   const logBoxRef = useRef(null)
 
+  const [activeDatasetMenuId, setActiveDatasetMenuId] = useState(null)
+
   // state cho sidebar database
   const [showDbSidebar, setShowDbSidebar] = useState(false)
   const userAvatarSrc = resolveAvatarFromUser(currentUser) || avatarUser
@@ -118,6 +123,38 @@ const AppHeader = ({ onOpenChat }) => {
       logBoxRef.current.scrollTop = logBoxRef.current.scrollHeight
     }
   }, [logMessages])
+  useEffect(() => {
+    if (!activeDatasetMenuId) {
+      return undefined
+    }
+
+    const handleGlobalPointerDown = (event) => {
+      const target = event.target
+      if (
+        target.closest('.database-list__menu') ||
+        target.closest('.database-list__action-button')
+      ) {
+        return
+      }
+      setActiveDatasetMenuId(null)
+    }
+
+    const handleGlobalKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setActiveDatasetMenuId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleGlobalPointerDown)
+    document.addEventListener('touchstart', handleGlobalPointerDown)
+    document.addEventListener('keydown', handleGlobalKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handleGlobalPointerDown)
+      document.removeEventListener('touchstart', handleGlobalPointerDown)
+      document.removeEventListener('keydown', handleGlobalKeyDown)
+    }
+  }, [activeDatasetMenuId])
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
@@ -274,11 +311,24 @@ const AppHeader = ({ onOpenChat }) => {
     }
   }
 
+  const handleDatasetMenuToggle = useCallback((event, folderId) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setActiveDatasetMenuId((currentId) => (currentId === folderId ? null : folderId))
+  }, [])
+
+  const handleDatasetMenuItemClick = useCallback((event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setActiveDatasetMenuId(null)
+  }, [])
+
   const handleDashboardClick = async (event) => {
     if (event) {
       event.preventDefault()
     }
     setIsUserMenuOpen(false)
+    setActiveDatasetMenuId(null)
     setLoaded(false)
     await fetchDatabases()
     setShowDbSidebar(true)
@@ -287,6 +337,7 @@ const AppHeader = ({ onOpenChat }) => {
   const handleCloseSidebar = () => {
     setIsUserMenuOpen(false)
     setShowDbSidebar(false)
+    setActiveDatasetMenuId(null)
     setLoaded(false)
   }
 
@@ -449,15 +500,60 @@ const AppHeader = ({ onOpenChat }) => {
                 {dbList.map((folder) => (
                   <CListGroupItem
                     key={folder.id}
-                    component="button"
+                    component="div"
                     action
                     onClick={() => {
                       setSelectedDb(folder.id)
+                      setActiveDatasetMenuId(null)
                       handleCloseSidebar()
                     }}
-                    style={{ cursor: 'pointer' }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setSelectedDb(folder.id)
+                        setActiveDatasetMenuId(null)
+                        handleCloseSidebar()
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    className="database-list__item"
                   >
-                    {folder.displayName || folder.id}
+                    <div className="database-list__item-content">
+                      <span className="database-list__item-name">
+                        {folder.displayName || folder.id}
+                      </span>
+                      <button
+                        type="button"
+                        className="database-list__action-button"
+                        onClick={(event) => handleDatasetMenuToggle(event, folder.id)}
+                        aria-haspopup="menu"
+                        aria-expanded={activeDatasetMenuId === folder.id}
+                        aria-label={`Open actions for ${folder.displayName || folder.id}`}
+                      >
+                        <img src={filledIcon} alt="" aria-hidden="true" />
+                      </button>
+                    </div>
+                    {activeDatasetMenuId === folder.id ? (
+                      <div className="database-list__menu" role="menu">
+                        <button
+                          type="button"
+                          className="database-list__menu-item"
+                          onClick={handleDatasetMenuItemClick}
+                        >
+                          <img src={editIcon} alt="" aria-hidden="true" />
+                          <span>Edit dataset</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="database-list__menu-item"
+                          onClick={handleDatasetMenuItemClick}
+                        >
+                          <img src={deleteIcon} alt="" aria-hidden="true" />
+                          <span>Delete dataset</span>
+                        </button>
+                      </div>
+                    ) : null}
                   </CListGroupItem>
                 ))}
               </CListGroup>
