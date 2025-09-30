@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import { CSpinner } from "@coreui/react";
 import { useDb } from '../../context/DbContext';
 const AUTH_TOKEN_KEY = 'minerranger.authToken';
@@ -140,10 +140,40 @@ const MetricCards = ({ entries, accent }) => {
             textAlign: "center",
             boxShadow: `0 4px 10px ${accent}44`,
             border: `1px solid ${accent}66`,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "110px", // đảm bảo chiều cao cố định
           }}
         >
-          <div style={{ fontSize: "1rem", color: "#fff", opacity: 0.95 }}>{titleCase(key)}</div>
-          <div style={{ fontSize: "1.9rem", fontWeight: 800, color: "#fff" }}>{value}</div>
+          <div
+            style={{
+              fontSize: "1rem",
+              color: "#fff",
+              opacity: 0.95,
+              marginBottom: "auto",
+              wordBreak: "break-word",
+              overflow: "hidden",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              lineHeight: "1.2",
+              maxHeight: "2.4em", // 2 dòng
+            }}
+          >
+            {titleCase(key)}
+          </div>
+          <div
+            style={{
+              fontSize: "1.9rem",
+              fontWeight: 800,
+              color: "#fff",
+              marginTop: "16px",
+              marginBottom: "0",
+            }}
+          >
+            {value}
+          </div>
         </div>
       ))}
     </div>
