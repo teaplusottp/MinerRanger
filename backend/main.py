@@ -365,6 +365,12 @@ async def upload_file(
 
 # ===================== WebSocket stream log =====================
 
+import traceback
+import logging
+
+logger = logging.getLogger("ws_upload")
+logging.basicConfig(level=logging.INFO)
+
 @app.websocket("/ws/upload")
 async def ws_upload(ws: WebSocket):
     await ws.accept()
@@ -389,48 +395,70 @@ async def ws_upload(ws: WebSocket):
         try:
             while True:
                 message = await queue.get()
-                await ws.send_text(message)
+                try:
+                    await ws.send_text(message)
+                except Exception as e:
+                    logger.error(f"Failed to send WS message: {e}")
+                    break
         except asyncio.CancelledError:
-            return
+            pass
+        except Exception as e:
+            logger.error(f"Sender task exception: {traceback.format_exc()}")
 
     sender_task = asyncio.create_task(sender())
-
-    dataset_payload: Optional[dict] = None
-    store_filename: Optional[str] = None
 
     try:
         folder_path = job_info.directory
         if not folder_path.endswith(os.sep):
             folder_path = folder_path + os.sep
 
-        cleaned_filename = await clean_and_save_logs(folder_path, GEMINI_API_KEY)
-        if not cleaned_filename:
-            raise RuntimeError("Unable to preprocess logs")
+        try:
+            cleaned_filename = await clean_and_save_logs(folder_path, GEMINI_API_KEY)
+            if not cleaned_filename:
+                raise RuntimeError("Unable to preprocess logs")
+        except Exception as e:
+            logger.error(f"Error in clean_and_save_logs: {traceback.format_exc()}")
+            raise
 
-        report_success = await gen_report(folder_path, GEMINI_API_KEY)
-        if not report_success:
-            raise RuntimeError("Failed to generate report")
+        try:
+            report_success = await gen_report(folder_path, GEMINI_API_KEY)
+            if not report_success:
+                raise RuntimeError("Failed to generate report")
+        except Exception as e:
+            logger.error(f"Error in gen_report: {traceback.format_exc()}")
+            raise
 
         print("[i] Generating store.json from report")
-        store_path = await asyncio.to_thread(build_store, folder_path)
-        store_filename = os.path.basename(store_path)
+        try:
+            store_path = await asyncio.to_thread(build_store, folder_path)
+            store_filename = os.path.basename(store_path)
+        except Exception as e:
+            logger.error(f"Error building store.json: {traceback.format_exc()}")
+            raise
 
-        dataset_payload = build_dataset_payload(job_id, job_info, cleaned_filename, store_filename)
-        dataset_record = await request_user_service(
-            "POST",
-            DATA_FOLDERS_ENDPOINT,
-            job_info.token,
-            dataset_payload,
-        )
-
-        await ws.send_text(
-            json.dumps({"type": "dataset_saved", "data": dataset_record.get("folder")})
-        )
+        try:
+            dataset_payload = build_dataset_payload(job_id, job_info, cleaned_filename, store_filename)
+            dataset_record = await request_user_service(
+                "POST",
+                DATA_FOLDERS_ENDPOINT,
+                job_info.token,
+                dataset_payload,
+            )
+            await ws.send_text(
+                json.dumps({"type": "dataset_saved", "data": dataset_record.get("folder")})
+            )
+        except Exception as e:
+            logger.error(f"Error saving dataset: {traceback.format_exc()}")
+            raise
 
     except HTTPException as http_exc:
-        await ws.send_text(json.dumps({"type": "error", "message": http_exc.detail}))
-    except Exception as exc:  # noqa: BLE001
-        await ws.send_text(json.dumps({"type": "error", "message": str(exc)}))
+        msg = f"HTTPException: {http_exc.detail}"
+        await ws.send_text(json.dumps({"type": "error", "message": msg}))
+        logger.error(msg)
+    except Exception as exc:
+        msg = f"Unhandled exception: {traceback.format_exc()}"
+        await ws.send_text(json.dumps({"type": "error", "message": msg}))
+        logger.error(msg)
     finally:
         sys.stdout = old_stdout
         sender_task.cancel()
@@ -440,7 +468,6 @@ async def ws_upload(ws: WebSocket):
         if job_id in JOB_REGISTRY:
             JOB_REGISTRY.pop(job_id, None)
         shutil.rmtree(job_info.directory, ignore_errors=True)
-
         await ws.close()
 
 # ===================== Sidebar mock API =====================
