@@ -222,51 +222,61 @@ const AppHeader = ({ onOpenChat }) => {
       }
 
       // 2. Nếu upload ok thì mở WS nhận log
-      const folder = data.folder
-      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/upload?folder=${folder}`)
+   const folder = data.folder
+const ws = new WebSocket(`ws://127.0.0.1:8000/ws/upload?folder=${folder}`)
 
-      ws.onopen = () => {
-        setLogMessages((prev) => [...prev, 'WebSocket connected...'])
+ws.onopen = () => {
+  setLogMessages((prev) => [...prev, 'WebSocket connected...'])
+}
+
+ws.onmessage = (event) => {
+  try {
+    const payload = JSON.parse(event.data)
+
+    if (payload?.type === 'dataset_saved') {
+      setLogMessages((prev) => [...prev, 'Dataset đã lưu lên GCS'])
+      fetchDatabases()
+      if (payload?.data?.id) {
+        setSelectedDb(payload.data.id)
       }
 
-      ws.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data)
-          if (payload?.type === 'dataset_saved') {
-            setLogMessages((prev) => [...prev, 'Dataset đã lưu lên GCS'])
-            fetchDatabases()
-            if (payload?.data?.id) {
-              setSelectedDb(payload.data.id)
-            }
-            return
-          }
-          if (payload?.type === 'error') {
-            setLogMessages((prev) => [...prev, `Lỗi: ${payload.message}`])
-            setLoading(false)
-            return
-          }
-        } catch (err) {
-          // ignore JSON parse errors and fall back to raw message
-        }
-        setLogMessages((prev) => [...prev, event.data])
-      }
+      // Upload thành công, dọn dẹp UI
+      setLoading(false)
+      setTimeout(() => {
+        alert('Upload thành công!')
+        setVisible(false)
+        setSelectedFile(null)
+        setTextValue('')
+        setLogMessages([])
+      }, 300)
+      return
+    }
 
-      ws.onerror = (err) => {
-        console.error('WS error:', err)
-        setLogMessages((prev) => [...prev, 'WebSocket error'])
-      }
+    if (payload?.type === 'error') {
+      setLogMessages((prev) => [...prev, `Lỗi: ${payload.message}`])
+      setLoading(false)
+      alert(`Upload thất bại: ${payload.message}`)
+      return
+    }
+  } catch (err) {
+    // ignore JSON parse errors and fall back to raw message
+  }
 
-      ws.onclose = () => {
-        setLogMessages((prev) => [...prev, 'WebSocket closed'])
-        setLoading(false)
-        setTimeout(() => {
-          alert('Upload thành công!')
-          setVisible(false)
-          setSelectedFile(null)
-          setTextValue('')
-          setLogMessages([])
-        }, 300)
-      }
+  setLogMessages((prev) => [...prev, event.data])
+}
+
+ws.onerror = (err) => {
+  console.error('WS error:', err)
+  setLogMessages((prev) => [...prev, 'WebSocket error'])
+  setLoading(false)
+  alert('Lỗi WebSocket')
+}
+
+ws.onclose = () => {
+  setLogMessages((prev) => [...prev, 'WebSocket closed'])
+  // Không alert thành công ở đây nữa
+}
+
     } catch (err) {
       console.error('Lỗi upload:', err)
       alert('Không kết nối được server')
