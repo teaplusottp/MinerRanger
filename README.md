@@ -162,15 +162,15 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 
 ---
 
-## 🖼️ System Diagrams
+## 📊 System Diagrams
 
 | Figure | Description | Image |
 |---------|--------------|--------|
-| **Hình 4.1** | Mô hình Root Agent và các Tác tử con | ![Hình 4.1](docs/figures/4.1-root-agent.png) |
-| **Hình 4.2** | Cấu trúc Cơ sở dữ liệu và Luồng RAG Workflow | ![Hình 4.2](docs/figures/4.2-rag-workflow.png) |
-| **Hình 4.3** | Luồng xử lý dữ liệu khi người dùng upload | ![Hình 4.3](docs/figures/4.3-upload-flow.png) |
-| **Hình 4.4** | Luồng hoạt động khi người dùng đặt truy vấn | ![Hình 4.4](docs/figures/4.4-query-flow.png) |
-| **Hình 4.5** | Luồng cải tiến quy trình kinh doanh | ![Hình 4.5](docs/figures/4.5-business-improvement.png) |
+| **Figure 4.1** | Root Agent Model and Sub-Agents | ![Figure 4.1](docs/figures/4.1-root-agent.png) |
+| **Figure 4.2** | Database Structure and RAG Workflow | ![Figure 4.2](docs/figures/4.2-rag-workflow.png) |
+| **Figure 4.3** | Data Processing Flow When User Uploads Files | ![Figure 4.3](docs/figures/4.3-upload-flow.png) |
+| **Figure 4.4** | Query Processing Flow When User Sends a Query | ![Figure 4.4](docs/figures/4.4-query-flow.png) |
+| **Figure 4.5** | Business Process Improvement Flow | ![Figure 4.5](docs/figures/4.5-business-improvement.png) |
 
 > 💡 All diagrams are stored under `docs/figures/` for easy access.
 
@@ -180,13 +180,13 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 
 | Figure | Page | Screenshot |
 |---------|------|-------------|
-| **Hình 6.1.a** | Trang Home | ![Home](docs/screenshots/6.1a-home.png) |
-| **Hình 6.1.b** | Trang Đăng ký | ![Signup](docs/screenshots/6.1b-signup.png) |
-| **Hình 6.1.c** | Trang Đăng nhập | ![Login](docs/screenshots/6.1c-login.png) |
-| **Hình 6.1.d** | Trang Upload dữ liệu | ![Upload](docs/screenshots/6.1d-upload.png) |
-| **Hình 6.1.e** | Trang Thống kê | ![Stats](docs/screenshots/6.1e-stats.png) |
-| **Hình 6.1.f** | Trang Thống kê | ![Stats](docs/screenshots/6.1f-stats.png) |
-| **Hình 6.1.g** | Chatbot trả lời truy vấn | ![Chatbot](docs/screenshots/6.1g-chatbot.png) |
+| **Figure 6.1.a** | Home Page | ![Home](docs/screenshots/6.1a-home.png) |
+| **Figure 6.1.b** | Signup Page | ![Signup](docs/screenshots/6.1b-signup.png) |
+| **Figure 6.1.c** | Login Page | ![Login](docs/screenshots/6.1c-login.png) |
+| **Figure 6.1.d** | Data Upload Page | ![Upload](docs/screenshots/6.1d-upload.png) |
+| **Figure 6.1.e** | Statistics Page | ![Stats](docs/screenshots/6.1e-stats.png) |
+| **Figure 6.1.f** | Advanced Statistics Page | ![Stats](docs/screenshots/6.1f-stats.png) |
+| **Figure 6.1.g** | Chatbot Query Response Page | ![Chatbot](docs/screenshots/6.1g-chatbot.png) |
 
 ---
 
