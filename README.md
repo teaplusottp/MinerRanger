@@ -184,7 +184,8 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 | **Hình 6.1.b** | Trang Đăng ký | ![Signup](docs/screenshots/6.1b-signup.png) |
 | **Hình 6.1.c** | Trang Đăng nhập | ![Login](docs/screenshots/6.1c-login.png) |
 | **Hình 6.1.d** | Trang Upload dữ liệu | ![Upload](docs/screenshots/6.1d-upload.png) |
-| **Hình 6.1.e, 6.1.f** | Trang Thống kê | ![Stats](docs/screenshots/6.1e-stats.png) |
+| **Hình 6.1.e** | Trang Thống kê | ![Stats](docs/screenshots/6.1e-stats.png) |
+| **Hình 6.1.f** | Trang Thống kê | ![Stats](docs/screenshots/6.1f-stats.png) |
 | **Hình 6.1.g** | Chatbot trả lời truy vấn | ![Chatbot](docs/screenshots/6.1g-chatbot.png) |
 
 ---
