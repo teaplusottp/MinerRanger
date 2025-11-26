@@ -199,6 +199,3 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 
 ---
 
-## 📜 License
-
-MIT License © 2025 — Your Name
