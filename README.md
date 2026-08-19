@@ -1,11 +1,11 @@
-# 🧩 Process Mining Demo with FastAPI & pm4py
+#  Process Mining Demo with FastAPI & pm4py
 
 This project demonstrates **Process Mining** techniques using Python, FastAPI, and pm4py.  
 It includes a backend that generates process graphs and serves them to a frontend dashboard.
 
 ---
 
-## 📘 Table of Contents
+##  Table of Contents
 1. [What is Process Mining?](#what-is-process-mining)  
 2. [Tech Stack](#tech-stack)  
 3. [Features](#features)  
@@ -20,7 +20,7 @@ It includes a backend that generates process graphs and serves them to a fronten
 
 ---
 
-## 🧠 What is Process Mining?
+##  What is Process Mining?
 
 Process Mining is a **data analysis technique** that focuses on event logs.  
 Most software systems automatically store logs of user actions.  
@@ -44,7 +44,7 @@ This enables visualization and analysis of the **actual business process flow**.
 
 ---
 
-## 🧰 Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |-------|-------------|
@@ -55,18 +55,18 @@ This enables visualization and analysis of the **actual business process flow**.
 
 ---
 
-## ⚙️ Features
+##  Features
 
-✅ Load and parse event logs (CSV / XES)  
-✅ Transform logs into **process cases**  
-✅ Generate **process models** (DFG, Petri Net, etc.)  
-✅ Serve generated process graphs via **FastAPI endpoints**  
-✅ React frontend dashboard for visualization  
-✅ Ready for extension with **RAG-based analytics** or chatbot integration  
+ Load and parse event logs (CSV / XES)  
+ Transform logs into **process cases**  
+ Generate **process models** (DFG, Petri Net, etc.)  
+ Serve generated process graphs via **FastAPI endpoints**  
+ React frontend dashboard for visualization  
+ Ready for extension with **RAG-based analytics** or chatbot integration  
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 TungTungTungSahur/
@@ -82,14 +82,14 @@ TungTungTungSahur/
 
 ---
 
-## 🧭 Installation & Running
+##  Installation & Running
 
-### 1️⃣ Clone the repository
+### 1️ Clone the repository
 ```bash
 git clone https://github.com/teaplusottp/MinerRanger
 ```
 
-### 2️⃣ Install dependencies
+### 2️ Install dependencies
 ```bash
 # Root-level tools
 npm install
@@ -103,7 +103,7 @@ cd ../frontend
 npm install
 ```
 
-### 3️⃣ Configure environment variables
+### 3️ Configure environment variables
 Copy the sample file and set your values:
 ```bash
 cp backend/.env.example backend/.env
@@ -116,7 +116,7 @@ cp backend/.env.example backend/.env
 
 See [`backend/.env.example`](backend/.env.example) for details.
 
-### 4️⃣ Run the stack
+### 4️ Run the stack
 ```bash
 npm start
 ```
@@ -128,7 +128,7 @@ This launches:
 
 ---
 
-## 🔍 Example Code (FastAPI Endpoint)
+##  Example Code (FastAPI Endpoint)
 
 ```python
 from fastapi import FastAPI
@@ -152,7 +152,7 @@ async def get_graph():
 
 ---
 
-## 📊 Example Graph
+##  Example Graph
 
 Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 
@@ -162,7 +162,7 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 
 ---
 
-## 📊 System Diagrams
+##  System Diagrams
 
 | Figure | Description | Image |
 |---------|--------------|--------|
@@ -172,11 +172,11 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 | **Figure 4.4** | Query Processing Flow When User Sends a Query | ![Figure 4.4](docs/figures/4.4-query-flow.png) |
 | **Figure 4.5** | Business Process Improvement Flow | ![Figure 4.5](docs/figures/4.5-business-improvement.png) |
 
-> 💡 All diagrams are stored under `docs/figures/` for easy access.
+>  All diagrams are stored under `docs/figures/` for easy access.
 
 ---
 
-## 💻 UI Screenshots
+##  UI Screenshots
 
 | Figure | Page | Screenshot |
 |---------|------|-------------|
@@ -190,7 +190,7 @@ Example of a **Directly-Follows Graph (DFG)** generated from event logs:
 
 ---
 
-## 🚀 Next Steps
+##  Next Steps
 
 - [ ] Upload & parse CSV/XES logs from UI  
 - [ ] Implement multiple miners (Alpha, Heuristics, Inductive)  
